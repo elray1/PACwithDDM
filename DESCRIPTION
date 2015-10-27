@@ -1,0 +1,10 @@
+Package: PACwithDDM
+Version: 0.0
+Title: Data set applications and simulation study for PACwithDDM paper.
+Authors@R: c(person("Evan", "Ray", role = c("aut", "cre"),
+                     email = "ray@math.umass.edu"))
+Author: Evan Ray
+Maintainer: Evan Ray <ray@math.umass.edu>
+Description: All necessary code to apply methods to physical activity data sets and run simulation studies in the PACwithDDM paper.  Models are RF, HMM with mixture of Gaussians for observation distribution, RF-HMM a la McShane et al., and L_2 regularized CRF.
+License: GPL (>= 2)
+LazyData: true
