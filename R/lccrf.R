@@ -5,10 +5,18 @@ initialize_new_CRF <- function(D = 1,
     if(D < 1)
         stop("D must be >= 1.")
     
-    crf <- .Call("initialize_new_CRF", as.integer(D), as.integer(S),
+    crf <- .Call("initialize_new_CRF_C", as.integer(D), as.integer(S),
         as.numeric(log_pi), as.numeric(log_trans_mat))
     
     return(crf)
+}
+
+set_CRF_pi_from_log <- function(HMM_Xptr, log_pi) {
+    return(.Call("set_CRF_pi_from_log_C", HMM_Xptr, log_pi))
+}
+
+set_CRF_trans_matrix_from_log <- function(HMM_Xptr, log_trans_mat) {
+    return(.Call("set_CRF_trans_matrix_from_log_C", HMM_Xptr, log_trans_mat))
 }
 
 
@@ -950,9 +958,11 @@ lccrf_crossval_est_neg_val_log_lik_by_beta_penalty_factor <- function(beta_penal
         prev_log_obs_probs_by_state <- lapply(data_split[crossval_groups[[ind]][group_sub]], function(obs_dat) {
           matrix(0, nrow = nrow(obs_dat$X), ncol = S)
         })
+    
+        omegas <- calc_omegas_from_omega_hat(component_fit$omega_hat[[1]], S, crf_control)
         
-        return(lccrf_update_log_lik_parametric(betas = component_fit$beta_hat, omegas = component_fit$omega_hat,
-          active_cols = component_fit$active_cols, beta_penalty_factor = 0, CRF_Xptr = CRF_Xptr,
+        return(lccrf_update_log_lik_parametric(betas = component_fit$beta_hat[[1]], omegas = omegas,
+          active_cols = component_fit$active_cols[[1]], beta_penalty_factor = 0, CRF_Xptr = CRF_Xptr,
           data_split = data_split[crossval_groups[[ind]][group_sub]], log_alpha = 0,
           prev_log_obs_probs_by_state = prev_log_obs_probs_by_state, crf_control = crf_control, retall = FALSE))
       }))
@@ -1077,9 +1087,9 @@ lccrf_update_neg_log_lik_given_log_obs_probs_omega_hat_first_parametric <- funct
 
 CRF_log_lik_given_obs_probs <- function(CRF_Xptr, observedHMMs, log_obs_probs_by_state, time_scale, retall) {
 	if(identical(time_scale, "marginal")) {
-		return(.Call("marginal_CRF_log_lik_given_obs_probs_R_interface", CRF_Xptr, observedHMMs, log_obs_probs_by_state, as.integer(retall)))
+		return(.Call("marginal_CRF_log_lik_given_obs_probs_C", CRF_Xptr, observedHMMs, log_obs_probs_by_state, as.integer(retall)))
 	} else if(identical(time_scale, "sequence")) {
-		return(.Call("CRF_log_lik_given_obs_probs_R_interface", CRF_Xptr, observedHMMs, log_obs_probs_by_state))
+		return(.Call("CRF_log_lik_given_obs_probs_C", CRF_Xptr, observedHMMs, log_obs_probs_by_state))
 	} else {
 		stop("time_scale must be either \"marginal\" or \"sequence\"")
 	}
@@ -1178,7 +1188,7 @@ lccrf_update_gradient_log_lik_given_log_obs_probs_omega_hat_first_parametric <- 
   set_trans_mat_from_omegas_CRF(CRF_Xptr, omegas)
 
   if(identical(time_scale, "sequence")) {
-    return(.Call("CRF_gradient_log_lik_wrt_omegas_given_obs_probs_R_interface", CRF_Xptr, data_split, log_obs_probs_by_state, as.integer(crf_control$reduced_trans_mat_parameterization)))
+    return(.Call("CRF_gradient_log_lik_wrt_omegas_given_obs_probs_C", CRF_Xptr, data_split, log_obs_probs_by_state, as.integer(crf_control$reduced_trans_mat_parameterization)))
   } else {
     stop("gradient wrt omega is not yet implemented for specified time scale")
   }
@@ -1460,7 +1470,7 @@ calc_marginal_class_probs_given_log_obs_probs_CRF <- function(CRF_Xptr, observed
 # C interface -- transition matrix should be set already
 globalSeqCRF_update_log_lik_C_interface <- function(HMM_Xptr, obs_HMMs_split, prev_log_obs_probs_by_state,
     betas, cols, retall) {
-    .Call("parametric_CRF_update_log_lik_R_interface", HMM_Xptr, obs_HMMs_split, prev_log_obs_probs_by_state,
+    .Call("parametric_CRF_update_log_lik_C", HMM_Xptr, obs_HMMs_split, prev_log_obs_probs_by_state,
         as.numeric(betas), as.integer(cols), as.integer(retall))
 }
 
@@ -1510,7 +1520,7 @@ globalSeqCRF_update_neg_log_lik_combinedparamsfirst <- function(params, cols, CR
 # C interface -- transition matrix should be set already
 globalSeqCRF_update_gradient_log_lik_C_interface <- function(HMM_Xptr, obs_HMMs_split, prev_log_obs_probs_by_state,
     betas, cols, beta_diff_cols, diff_wrt_omegas, reduced_log_mat_parameterization) {
-    .Call("parametric_CRF_update_gradient_log_lik_R_interface", HMM_Xptr, obs_HMMs_split, prev_log_obs_probs_by_state,
+    .Call("parametric_CRF_update_gradient_log_lik_C", HMM_Xptr, obs_HMMs_split, prev_log_obs_probs_by_state,
         as.numeric(betas), as.integer(cols), as.integer(beta_diff_cols), as.integer(diff_wrt_omegas), as.integer(reduced_log_mat_parameterization))
 }
 

@@ -1,24 +1,24 @@
 get_C_dbl_max <- function() {
-	return(.Call("get_dbl_max"))
+	return(.Call("get_dbl_max_C"))
 }
 
 logspace_sub <- function(logx, logy) {
-	return(.Call("logspace_sub_R_C_interface", as.numeric(logx), as.numeric(logy)))
+	return(.Call("logspace_sub_C", as.numeric(logx), as.numeric(logy)))
 }
 
 logspace_add <- function(logx, logy) {
-	return(.Call("logspace_add_R_C_interface", as.numeric(logx), as.numeric(logy)))
+	return(.Call("logspace_add_C", as.numeric(logx), as.numeric(logy)))
 }
 
 logspace_sum_matrix_rows <- function(logX) {
-	return(.Call("logspace_sum_matrix_rows", as.numeric(logX), as.integer(nrow(logX)), as.integer(ncol(logX))))
+	return(.Call("logspace_sum_matrix_rows_C", as.numeric(logX), as.integer(nrow(logX)), as.integer(ncol(logX))))
 }
 
 logspace_sub_matrix_rows <- function(logX) {
 	if(!is.matrix(logX) || !identical(ncol(logX), 2L))
 		stop("logX must be a matrix with 2 columns")
 
-	return(.Call("logspace_sub_matrix_rows", as.numeric(logX), as.integer(nrow(logX))))
+	return(.Call("logspace_sub_matrix_rows_C", as.numeric(logX), as.integer(nrow(logX))))
 }
 
 dMVN <- function(X, mu, Sigma, log = FALSE) {
@@ -27,7 +27,7 @@ dMVN <- function(X, mu, Sigma, log = FALSE) {
 	cat(log_det_Sigma)
 	cat("\n")
 	
-	.Call("dMVN_multiobs_R_interface", as.numeric(X), nrow(X), ncol(X), as.numeric(mu), as.numeric(Sigma), as.numeric(log_det_Sigma), as.integer(log))
+	.Call("dMVN_multiobs_C", as.numeric(X), nrow(X), ncol(X), as.numeric(mu), as.numeric(Sigma), as.numeric(log_det_Sigma), as.integer(log))
 }
 
 dMVN_prec <- function(X, mu, prec, log = FALSE) {
@@ -36,7 +36,7 @@ dMVN_prec <- function(X, mu, prec, log = FALSE) {
 	cat(log_det_Sigma)
 	cat("\n")
 	
-	.Call("dMVN_Prec_multiobs_R_interface", as.numeric(X), nrow(X), ncol(X), as.numeric(mu), as.numeric(prec), as.numeric(log_det_Sigma), as.integer(log))
+	.Call("dMVN_Prec_multiobs_C", as.numeric(X), nrow(X), ncol(X), as.numeric(mu), as.numeric(prec), as.numeric(log_det_Sigma), as.integer(log))
 }
 
 dMVN_diagprec <- function(X, mu, prec, log = FALSE) {
@@ -45,7 +45,7 @@ dMVN_diagprec <- function(X, mu, prec, log = FALSE) {
 	cat(log_det_Sigma)
 	cat("\n")
 	
-	.Call("dMVN_DiagPrec_multiobs_R_interface", as.numeric(X), nrow(X), ncol(X), as.numeric(mu), as.numeric(prec), as.numeric(log_det_Sigma), as.integer(log))
+	.Call("dMVN_DiagPrec_multiobs_C", as.numeric(X), nrow(X), ncol(X), as.numeric(mu), as.numeric(prec), as.numeric(log_det_Sigma), as.integer(log))
 }
 
 dGMM <- function(x, rhos = rep(1/length(mus), length(mus)), mus, Prec = NULL, Sigmas = NULL, log_det_Sigmas = NULL, log = FALSE) {
@@ -127,7 +127,7 @@ dGMM <- function(x, rhos = rep(1/length(mus), length(mus)), mus, Prec = NULL, Si
 				x <- matrix(x, ncol = length(Prec))
 			}
 			
-			return(.Call("dGMM_sameDiagPrec_R_Interface", as.numeric(x), as.integer(nrow(x)), as.integer(ncol(x)),
+			return(.Call("dGMM_sameDiagPrec_C", as.numeric(x), as.integer(nrow(x)), as.integer(ncol(x)),
 							as.numeric(rhos), mus, as.numeric(Prec), as.numeric(log_det_Sigmas), length(mus), retlog))
 		} else if(is.matrix(Prec)) {
 			if(is.null(log_det_Sigmas))
@@ -139,7 +139,7 @@ dGMM <- function(x, rhos = rep(1/length(mus), length(mus)), mus, Prec = NULL, Si
 				x <- matrix(x, ncol = ncol(Prec))
 			}
 			
-			return(.Call("dGMM_samePrec_R_Interface", as.numeric(x), as.integer(nrow(x)), as.integer(ncol(x)),
+			return(.Call("dGMM_samePrec_C", as.numeric(x), as.integer(nrow(x)), as.integer(ncol(x)),
 							as.numeric(rhos), mus, as.numeric(Prec), as.numeric(log_det_Sigmas), length(mus), retlog))
 		} else if(is.list(Prec)) {
 			if(!identical(length(rhos), length(Prec)))	
@@ -160,7 +160,7 @@ dGMM <- function(x, rhos = rep(1/length(mus), length(mus)), mus, Prec = NULL, Si
 					x <- matrix(x, ncol = length(Prec[[1]]))
 				}
 				
-				return(.Call("dGMM_DiagPrec_R_Interface", as.numeric(x), as.integer(nrow(x)), as.integer(ncol(x)),
+				return(.Call("dGMM_DiagPrec_C", as.numeric(x), as.integer(nrow(x)), as.integer(ncol(x)),
 								as.numeric(rhos), mus, Prec, log_det_Sigmas, length(mus), retlog))
 			} else if(is.matrix(Prec[[1]])) {
 				if(is.null(log_det_Sigmas))
@@ -171,7 +171,7 @@ dGMM <- function(x, rhos = rep(1/length(mus), length(mus)), mus, Prec = NULL, Si
 					x <- matrix(x, ncol = ncol(Prec[[1]]))
 				}
 				
-				return(.Call("dGMM_Prec_R_Interface", as.numeric(x), as.integer(nrow(x)), as.integer(ncol(x)),
+				return(.Call("dGMM_Prec_C", as.numeric(x), as.integer(nrow(x)), as.integer(ncol(x)),
 								as.numeric(rhos), mus, Prec, log_det_Sigmas, length(mus), retlog))
 			} else {
 				stop("If Prec is a list, it must be a list of vectors or matrices.")

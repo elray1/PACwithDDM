@@ -1,11 +1,11 @@
 rm(list = ls())
 library("rstream")
-library("DDMforPA")
+library("PACwithDDM")
 
 # In this file, we create files with the random number generation stream starting point
 # for each combination of data set, accelerometer location, classification variable, and
 # fit method
-save_location <- file.path(find.package("DDMforPA"), "appliedPAClassificationScripts", "rngstreams")
+save_location <- file.path(find.package("PACwithDDM"), "appliedPAClassificationScripts", "rngstreams")
 
 # First, build a data frame with the number of substreams used for each fit_method and
 # whether or not a reduced transition matrix is relevant for that method

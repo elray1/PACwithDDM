@@ -503,6 +503,160 @@ SEXP CRF_log_lik_given_obs_probs_R_interface(SEXP CRF_Xptr, SEXP observedCRFsp, 
 
 
 
+void marginal_CRF_log_lik_given_obs_probs_one_subject(CRF *CRF_params, int T, double **log_obs_probs_given_state, int *a, double *loglik,
+		double **forward_vars, double **backward_vars, double **ps) {
+	// VARIABLE DECALARATIONS
+
+	// temporary and index variables
+	int t;
+
+	// DO THE CALCULATION OF THE LIKELIHOOD
+
+	// calculate the forward/backward vars
+	calc_forward_vars_logs(CRF_params, T, log_obs_probs_given_state, forward_vars);
+	calc_backward_vars_logs(CRF_params, T, log_obs_probs_given_state, backward_vars);
+
+	// calculate the probabilities of each class at all t based on all models combined
+	calc_ps_logs(CRF_params, T, forward_vars, backward_vars, ps);
+
+	for(t = 0; t < T; t++)
+		*loglik += *(*(ps + t) + *(a + t) - 1);
+}
+
+void marginal_CRF_log_lik_given_obs_probs(CRF *CRF_params, int N, int *T, double ***log_obs_prob_given_state, int **a,
+		double *loglik, double **forward_vars, double **backward_vars, double ***ps) {
+	int i;
+	
+	*loglik = 0;
+
+	for(i = 0; i < N; i++)
+		marginal_CRF_log_lik_given_obs_probs_one_subject(CRF_params, *(T + i), *(log_obs_prob_given_state + i), *(a + i),
+			loglik, forward_vars, backward_vars, *(ps + i));
+}
+
+SEXP marginal_CRF_log_lik_given_obs_probs_R_interface(SEXP CRF_Xptr, SEXP observedCRFsp, SEXP log_obs_probs_by_statep, SEXP retallp) {
+	// DEFINE SOME INDEX AND TEMPORARY VARIABLES
+	int i, t, s, maxT, nRprotect = 0, N = length(observedCRFsp);
+	int T[N];
+	double *tempdblptr1;
+
+	// READ VARIOUS PARAMETER VALUES INTO C DATA STRUCTURES
+
+	// CRF_params contains the parameters for the CRF.
+	CRF *CRF_params = CRF_from_RXptr(CRF_Xptr);
+
+	for(i = 0; i < N; i++) {
+		T[i] = *(INTEGER(getAttrib(getListElement(VECTOR_ELT(observedCRFsp, i), "X"), R_DimSymbol)));
+	}
+
+	// a variable to contain the return value
+	int retall = *INTEGER(retallp);
+	SEXP retval;
+	if(retall) {
+		retval = PROTECT(allocVector(VECSXP, 2));
+		nRprotect++;
+		SET_VECTOR_ELT(retval, 0, allocVector(REALSXP, 1));
+		SET_VECTOR_ELT(retval, 1, allocVector(VECSXP, N));
+		for(i = 0; i < N; i++) {
+			SET_VECTOR_ELT(VECTOR_ELT(retval, 1), i, allocMatrix(REALSXP, T[i], CRF_params->S));
+			tempdblptr1 = REAL(VECTOR_ELT(VECTOR_ELT(retval, 1), i));
+		}
+	} else {
+		retval = PROTECT(allocVector(REALSXP, 1));
+		nRprotect++;
+	}
+
+	
+	double ***log_obs_probs_by_state = Calloc(N, double**);
+	double ***ps = Calloc(N, double**);
+	for(i = 0; i < N; i++) {
+		*(log_obs_probs_by_state + i) = Calloc( T[i], double* );
+		*(ps + i) = Calloc( T[i], double* );
+		for(t = 0; t < T[i]; t++) {
+			*(*(log_obs_probs_by_state + i) + t) = Calloc(CRF_params->S, double);
+			*(*(ps + i) + t) = Calloc(CRF_params->S, double);
+		}
+		
+		tempdblptr1 = REAL(VECTOR_ELT(log_obs_probs_by_statep, i));
+		for(t = 0; t < T[i]; t++) {
+			for(s = 0; s < CRF_params->S; s++) {
+				*(*(*(log_obs_probs_by_state + i) + t) + s) = *(tempdblptr1 + t + s * T[i]);
+			}
+		}
+	}
+
+	
+	// create space to store forward and backward variables, observation probabilities, and combined class probabilities.
+	// it is convenient for the forward vars to be stored in a row vector, backward vars in a col vector,
+	// and probabilities given states in a col vector
+	// We allocate enough space to store the variables for the subject with the longest observation sequence
+	// and re-use that space for all subjects
+	maxT = T[0];
+	for(i = 1; i < N; i++)
+		if(maxT < T[i])
+			maxT = T[i];
+
+	double **forward_vars = Calloc(maxT, double*);
+	double **backward_vars = Calloc(maxT, double*);
+	for(t = 0; t < maxT; t++) {
+		forward_vars[t] = Calloc(CRF_params->S, double);
+		backward_vars[t] = Calloc(CRF_params->S, double);
+	}
+	
+	// pointers to the observed class and covariates at all time points for each subject
+	// the observed class
+	int *a[N];
+
+	for(i = 0; i < N; i++)
+		a[i] = INTEGER(getListElement(VECTOR_ELT(observedCRFsp, i), "y"));
+	
+	// DO THE CALCULATION OF THE LOG-LIKELIHOOD
+	// the calculated log-likelihood
+	double *loglik;
+	if(retall) {
+		loglik = REAL(VECTOR_ELT(retval, 0));
+	} else {
+		loglik = REAL(retval);
+	}
+	
+	marginal_CRF_log_lik_given_obs_probs(CRF_params, N, T, log_obs_probs_by_state, a,
+		loglik, forward_vars, backward_vars, ps);
+	
+	if(retall) {
+		// if requested, store the log class probabilities in the return value.
+		for(i = 0; i < N; i++) {
+			tempdblptr1 = REAL(VECTOR_ELT(VECTOR_ELT(retval, 1), i));
+			for(t = 0; t < T[i]; t++) {
+				for(s = 0; s < CRF_params->S; s++) {
+					*(tempdblptr1 + t + s * T[i]) = *(*(*(ps + i) + t) + s);
+				}
+			}
+		}
+	}
+
+	// FREE MEMORY
+	for(t = 0; t < maxT; t++) {
+		Free(forward_vars[t]);
+		Free(backward_vars[t]);
+	}
+	Free(forward_vars);
+	Free(backward_vars);
+
+	for(i = 0; i < N; i++) {
+		for(t = 0; t < T[i]; t++) {
+			Free(*(*(log_obs_probs_by_state + i) + t));
+			Free(*(*(ps + i) + t));
+		}
+		Free(*(log_obs_probs_by_state + i));
+		Free(*(ps + i));
+	}
+	Free(log_obs_probs_by_state);
+	Free(ps);
+
+	UNPROTECT(nRprotect);
+
+	return retval;
+}
 
 
 
@@ -903,33 +1057,33 @@ SEXP CRF_gradient_log_lik_wrt_omegas_given_obs_probs_R_interface(SEXP CRF_Xptr, 
 
 R_CallMethodDef callMethods[] =
 {
-    {"initialize_new_CRF", (DL_FUNC)&initialize_new_CRF, 4},
-//    {"get_log_obs_probs_by_state", (DL_FUNC)&get_log_obs_probs_by_state, 4},
-    {"set_CRF_pi_from_log", (DL_FUNC)&set_CRF_pi_from_log, 2},
-    {"set_CRF_trans_matrix_from_log", (DL_FUNC)&set_CRF_trans_matrix_from_log, 2},
-	{"parametric_CRF_update_log_lik_R_interface", (DL_FUNC)&parametric_CRF_update_log_lik_R_interface, 6},
-	{"CRF_log_lik_given_obs_probs_R_interface", (DL_FUNC)&CRF_log_lik_given_obs_probs_R_interface, 3},
-	{"parametric_CRF_update_gradient_log_lik_R_interface", (DL_FUNC)&parametric_CRF_update_gradient_log_lik_R_interface, 8},
-	{"CRF_gradient_log_lik_wrt_omegas_given_obs_probs_R_interface", (DL_FUNC)&CRF_gradient_log_lik_wrt_omegas_given_obs_probs_R_interface, 4},
-	{"calc_log_McShane_class_probs_given_log_static_class_probs_R_interface", (DL_FUNC)&calc_log_McShane_class_probs_given_log_static_class_probs_R_interface, 5},
-	{"get_dbl_max", (DL_FUNC)&get_dbl_max, 0},
-	{"logspace_add_R_C_interface", (DL_FUNC)&logspace_add_R_C_interface, 2},
-	{"logspace_sub_R_C_interface", (DL_FUNC)&logspace_sub_R_C_interface, 2},
-    {"logspace_sum_matrix_rows", (DL_FUNC)&logspace_sum_matrix_rows, 3},
-    {"logspace_sub_matrix_rows", (DL_FUNC)&logspace_sub_matrix_rows, 2},
-    {"dMVN_multiobs_R_interface", (DL_FUNC)&dMVN_multiobs_R_interface, 7},
-    {"dMVN_Prec_multiobs_R_interface", (DL_FUNC)&dMVN_Prec_multiobs_R_interface, 7},
-    {"dMVN_DiagPrec_multiobs_R_interface", (DL_FUNC)&dMVN_DiagPrec_multiobs_R_interface, 7},
-    {"dGMM_sameDiagPrec_R_Interface", (DL_FUNC)&dGMM_sameDiagPrec_R_Interface, 8},
-    {"dGMM_DiagPrec_R_Interface", (DL_FUNC)&dGMM_DiagPrec_R_Interface, 8},
-    {"dGMM_samePrec_R_Interface", (DL_FUNC)&dGMM_samePrec_R_Interface, 8},
-    {"dGMM_Prec_R_Interface", (DL_FUNC)&dGMM_Prec_R_Interface, 8},
-    {"dGMM_sameSigma_R_Interface", (DL_FUNC)&dGMM_sameSigma_R_Interface, 8},
-    {"dGMM_R_Interface", (DL_FUNC)&dGMM_R_Interface, 8},
+    {"initialize_new_CRF_C", (DL_FUNC)&initialize_new_CRF, 4},
+    {"set_CRF_pi_from_log_C", (DL_FUNC)&set_CRF_pi_from_log, 2},
+    {"set_CRF_trans_matrix_from_log_C", (DL_FUNC)&set_CRF_trans_matrix_from_log, 2},
+	{"parametric_CRF_update_log_lik_C", (DL_FUNC)&parametric_CRF_update_log_lik_R_interface, 6},
+	{"CRF_log_lik_given_obs_probs_C", (DL_FUNC)&CRF_log_lik_given_obs_probs_R_interface, 3},
+	{"parametric_CRF_update_gradient_log_lik_C", (DL_FUNC)&parametric_CRF_update_gradient_log_lik_R_interface, 8},
+	{"CRF_gradient_log_lik_wrt_omegas_given_obs_probs_C", (DL_FUNC)&CRF_gradient_log_lik_wrt_omegas_given_obs_probs_R_interface, 4},
+	{"calc_log_McShane_class_probs_given_log_static_class_probs_C", (DL_FUNC)&calc_log_McShane_class_probs_given_log_static_class_probs_R_interface, 5},
+	{"marginal_CRF_log_lik_given_obs_probs_C", (DL_FUNC)&marginal_CRF_log_lik_given_obs_probs_R_interface, 4},
+	{"get_dbl_max_C", (DL_FUNC)&get_dbl_max, 0},
+	{"logspace_add_C", (DL_FUNC)&logspace_add_R_C_interface, 2},
+	{"logspace_sub_C", (DL_FUNC)&logspace_sub_R_C_interface, 2},
+    {"logspace_sum_matrix_rows_C", (DL_FUNC)&logspace_sum_matrix_rows, 3},
+    {"logspace_sub_matrix_rows_C", (DL_FUNC)&logspace_sub_matrix_rows, 2},
+    {"dMVN_multiobs_C", (DL_FUNC)&dMVN_multiobs_R_interface, 7},
+    {"dMVN_Prec_multiobs_C", (DL_FUNC)&dMVN_Prec_multiobs_R_interface, 7},
+    {"dMVN_DiagPrec_multiobs_C", (DL_FUNC)&dMVN_DiagPrec_multiobs_R_interface, 7},
+    {"dGMM_sameDiagPrec_C", (DL_FUNC)&dGMM_sameDiagPrec_R_Interface, 8},
+    {"dGMM_DiagPrec_C", (DL_FUNC)&dGMM_DiagPrec_R_Interface, 8},
+    {"dGMM_samePrec_C", (DL_FUNC)&dGMM_samePrec_R_Interface, 8},
+    {"dGMM_Prec_C", (DL_FUNC)&dGMM_Prec_R_Interface, 8},
+    {"dGMM_sameSigma_C", (DL_FUNC)&dGMM_sameSigma_R_Interface, 8},
+    {"dGMM_C", (DL_FUNC)&dGMM_R_Interface, 8},
 	{NULL,NULL, 0}
 };
 
-void R_init_DDMforPA(DllInfo *dll)
+void R_init_PACwithDDM(DllInfo *dll)
 {
 	R_registerRoutines(dll,NULL,callMethods,NULL,NULL);
 }

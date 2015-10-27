@@ -33,7 +33,7 @@ if(fit_method %in% c("normalHMM", "RF", "RFHMM")) {
 ## load packages on cluster
 sfLibrary("plyr", character.only = TRUE)
 
-sfLibrary("DDMforPA", character.only = TRUE)
+sfLibrary("PACwithDDM", character.only = TRUE)
 
 sfLibrary("randomForest", character.only = TRUE)
 sfLibrary("rpart", character.only = TRUE)
@@ -59,7 +59,7 @@ if(reduced_trans_mat_parameterization) {
 
 save_file_name <- paste0(save_file_name, "_subject", subj, ".Rdata")
 
-save_path <- file.path("C:", "Stat", "HMM", "HMMEnsembles", "DDMforPA", "inst", "results", data_set, location, class_var, fit_method, save_file_name)
+save_path <- file.path("C:", "Stat", "HMM", "HMMEnsembles", "PACwithDDM", "inst", "results", data_set, location, class_var, fit_method, save_file_name)
 #save_path <- file.path("/home", "er71a", "HMMapplication", "results", data_set, location, class_var, fit_method, save_file_name)
 #save_path <- file.path("/home", "em"/", "Stat", "hmm", "hmmensembles", "HMMapplication", "results", data_set, location, class_var, fit_method, save_file_name)
 
@@ -132,7 +132,7 @@ if(! fit_method %in% c("RFHMM", "MLRHMM", "SVM")) {
 		"reducedTrans", as.character(reduced_trans_mat_parameterization),
 		"subj", subj, sep = "_")
     
-    load(file = file.path(find.package("DDMforPA"), "appliedPAClassificationScripts", "rngstreams", paste0(stream_filename, ".rdata")))
+    load(file = file.path(find.package("PACwithDDM"), "appliedPAClassificationScripts", "rngstreams", paste0(stream_filename, ".rdata")))
 }
 
 
