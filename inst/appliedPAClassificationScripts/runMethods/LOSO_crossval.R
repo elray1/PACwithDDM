@@ -17,12 +17,12 @@ reduced_trans_mat_parameterization <- as.logical(args[6])
 #fit_method <- "L2RegularizedCRF"
 #reduced_trans_mat_parameterization <- FALSE
 
-subj <- 1L
-data_set <- "SasakiLab"
-location <- "wrist"
-class_var <- "y_category3"
-fit_method <- "L2RegularizedCRF"
-reduced_trans_mat_parameterization <- FALSE
+#subj <- 1L
+#data_set <- "SasakiLab"
+#location <- "wrist"
+#class_var <- "y_category3"
+#fit_method <- "L2RegularizedCRF"
+#reduced_trans_mat_parameterization <- FALSE
 
 
 ## set up cluster
@@ -66,7 +66,8 @@ if(reduced_trans_mat_parameterization) {
 
 save_file_name <- paste0(save_file_name, "_subject", subj, ".Rdata")
 
-save_path <- file.path("C:", "Stat", "HMM", "PACwithDDM", "inst", "results", data_set, location, class_var, fit_method, save_file_name)
+save_path <- file.path("F:", "Evan", "PACwithDDM-linux", "pacwithddm", "inst", "results", data_set, location, class_var, fit_method, save_file_name)
+#save_path <- file.path("C:", "Stat", "HMM", "PACwithDDM", "inst", "results", data_set, location, class_var, fit_method, save_file_name)
 #save_path <- file.path("/home", "er71a", "HMMapplication", "results", data_set, location, class_var, fit_method, save_file_name)
 #save_path <- file.path("/home", "em"/", "Stat", "hmm", "hmmensembles", "HMMapplication", "results", data_set, location, class_var, fit_method, save_file_name)
 
