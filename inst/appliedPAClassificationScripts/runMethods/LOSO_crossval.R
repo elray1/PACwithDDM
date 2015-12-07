@@ -10,10 +10,17 @@ class_var <- args[4]
 fit_method <- args[5]
 reduced_trans_mat_parameterization <- as.logical(args[6])
 
+#subj <- 1L
+#data_set <- "Mannini"
+#location <- "ankle"
+#class_var <- "y_category4"
+#fit_method <- "L2RegularizedCRF"
+#reduced_trans_mat_parameterization <- FALSE
+
 subj <- 1L
-data_set <- "Mannini"
-location <- "ankle"
-class_var <- "y_category4"
+data_set <- "SasakiLab"
+location <- "wrist"
+class_var <- "y_category3"
 fit_method <- "L2RegularizedCRF"
 reduced_trans_mat_parameterization <- FALSE
 
@@ -24,8 +31,8 @@ library("snowfall")
 if(fit_method %in% c("normalHMM", "RF", "RFHMM")) {
 	sfInit(parallel = FALSE, cpus = 1, type = "SOCK")
 } else {
-#	sfInit(parallel = TRUE, cpus = 10, type = "SOCK")
-    sfInit(parallel = FALSE, cpus = 1, type = "SOCK")
+	sfInit(parallel = TRUE, cpus = 10, type = "SOCK")
+#    sfInit(parallel = FALSE, cpus = 1, type = "SOCK")
 }
 
 
@@ -59,7 +66,7 @@ if(reduced_trans_mat_parameterization) {
 
 save_file_name <- paste0(save_file_name, "_subject", subj, ".Rdata")
 
-save_path <- file.path("C:", "Stat", "HMM", "HMMEnsembles", "PACwithDDM", "inst", "results", data_set, location, class_var, fit_method, save_file_name)
+save_path <- file.path("C:", "Stat", "HMM", "PACwithDDM", "inst", "results", data_set, location, class_var, fit_method, save_file_name)
 #save_path <- file.path("/home", "er71a", "HMMapplication", "results", data_set, location, class_var, fit_method, save_file_name)
 #save_path <- file.path("/home", "em"/", "Stat", "hmm", "hmmensembles", "HMMapplication", "results", data_set, location, class_var, fit_method, save_file_name)
 
@@ -264,7 +271,6 @@ confusion_matrix <- table(test_data$y, y_pred)
 num_correct <- sum(y_pred == test_data$y)
 prop_correct <- num_correct / length(test_data$y)
 
-
-
 ## save results
 save(subj, fit_time, y_pred, log_class_probs, confusion_matrix, num_correct, prop_correct, file = save_path)
+
