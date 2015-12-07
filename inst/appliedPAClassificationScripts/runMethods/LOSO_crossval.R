@@ -17,12 +17,12 @@ reduced_trans_mat_parameterization <- as.logical(args[6])
 #fit_method <- "L2RegularizedCRF"
 #reduced_trans_mat_parameterization <- FALSE
 
-subj <- 1L
-data_set <- "SasakiLab"
-location <- "wrist"
-class_var <- "y_category3"
-fit_method <- "L2RegularizedCRF"
-reduced_trans_mat_parameterization <- FALSE
+#subj <- 1L
+#data_set <- "SasakiLab"
+#location <- "wrist"
+#class_var <- "y_category3"
+#fit_method <- "L2RegularizedCRF"
+#reduced_trans_mat_parameterization <- FALSE
 
 
 ## set up cluster
