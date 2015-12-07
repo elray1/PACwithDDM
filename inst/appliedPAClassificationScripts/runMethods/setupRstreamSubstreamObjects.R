@@ -79,3 +79,4 @@ for(data_set in c("Mannini", "SasakiFreeLiving", "SasakiLab")) {
 		} # class_var
 	} # location
 } # data_set
+

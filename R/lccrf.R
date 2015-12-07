@@ -223,6 +223,7 @@ lccrf_validate_crf_control <- function(crf_control) {
 
 
 lccrf <- function(data_concat, crf_control, rngstream, resume_from) {
+#	cat("entering lccrf\n")
 	if(missing(crf_control)) {
 		crf_control <- lccrf_crf_control()
 	} else {
@@ -267,8 +268,10 @@ lccrf <- function(data_concat, crf_control, rngstream, resume_from) {
 	# clean up X
 	if(crf_control$fit_method %in%  c("parametric-boost", "parametric-L2-penalized-MLE")) {
   		# add leading column of 1's if necessary
-  		if(!isTRUE(all.equal(data_concat$X[, 1], rep(1, T_total))) && crf_control$add_intercept)
+  		if(!isTRUE(all.equal(data_concat$X[, 1], rep(1, T_total))) && crf_control$add_intercept) {
   			data_concat$X <- cbind(rep(1, T_total), data_concat$X)
+			crf_control$num_active_vars <- crf_control$num_active_vars + 1
+		}
   
   		# center and scale covariates if requested
 		if(crf_control$center_scale) {
@@ -287,6 +290,7 @@ lccrf <- function(data_concat, crf_control, rngstream, resume_from) {
 		# add trailing column of 0's for L2 penalized method -- otherwise, coefficients would not be treated the same.
 		if(identical(crf_control$fit_method, "parametric-L2-penalized-MLE")) {
 			data_concat$X <- cbind(data_concat$X, rep(0, nrow(data_concat$X)))
+			crf_control$num_active_vars <- crf_control$num_active_vars + 1
 		}
 	}
 
@@ -459,11 +463,13 @@ lccrf <- function(data_concat, crf_control, rngstream, resume_from) {
 	temp_result$crf_control <- crf_control
 	temp_result$orig_y_levels <- orig_y_levels
 
+#	cat("exiting lccrf\n")
 	return(temp_result)
 }
 
 
 lccrf_one_validation_set <- function(data_concat, beta_penalty_factor, train_subjects, validate_subjects, crf_control, rngstream, rstream_offset, resume_from) {
+#	cat("entering lccrf_one_validation_set\n")
 	if(!is.null(resume_from))
 		stop("resume functionality is not yet implemented")
   
@@ -629,6 +635,7 @@ lccrf_one_validation_set <- function(data_concat, beta_penalty_factor, train_sub
 		m <- m + 1L
 	}
 
+#	cat("exiting lccrf_one_validation_set\n")
     if(N_validate > 0) {
   		return(list(log_pi_hat = log_marginal_class_probs, omega_hat = omega_hat, beta_hat = beta_hat, active_vars = active_vars, active_cols = active_cols, log_alpha_hat = log_alpha_hat, validate_subjects = validate_subjects, validate_log_lik_trace = validate_log_lik_trace, validate_prop_correct_trace = validate_prop_correct_trace, train_log_lik_trace = train_log_lik_trace))
 	} else {
@@ -638,6 +645,7 @@ lccrf_one_validation_set <- function(data_concat, beta_penalty_factor, train_sub
 
 
 lccrf_est_one_component_parametric <- function(CRF_Xptr, data_concat, data_split, D, prev_omega_hat, beta_penalty_factor, prev_log_obs_probs_by_state, first_term, prev_iter_log_lik, crf_control) {
+#	cat("entering lccrf_est_one_component_parametric\n")
 	# it is assumed that the data have been augmented so that the first column of X is a vector of 1's.
 
 	# number of time points for each subject and in total
@@ -662,7 +670,7 @@ lccrf_est_one_component_parametric <- function(CRF_Xptr, data_concat, data_split
 	max_vars <- as.integer(min(crf_control$num_active_vars[[1]], D - 1))
 
 	while(attempt_num < crf_control$max_attempts && ifelse(identical(max_vars, 1L), length(vars_not_tried) > 1, TRUE) && prev_iter_log_lik >= log_lik) {
-		cat('.')
+#		cat('.')
 		attempt_num <- attempt_num + 1
 		
 		if(first_term) {
@@ -831,10 +839,13 @@ lccrf_est_one_component_parametric <- function(CRF_Xptr, data_concat, data_split
 	log_lik <- temp[[1]]
 	combined_log_obs_probs_by_state <- temp[[2]]
 
+#	cat("exiting lccrf_est_one_component_parametric\n")
+
 	return(list(omega_hat = omega_hat, active_vars = active_vars, active_cols = active_cols, beta_hat = beta_hat, log_alpha_hat = log_alpha_hat, log_lik = log_lik, combined_log_obs_probs_by_state = combined_log_obs_probs_by_state))
 }
 
 crossval_select_beta_penalty_factor <- function(data_concat, prev_log_obs_probs_by_state, first_term, prev_iter_log_lik, rngstream, rstream_offset, crf_control, crossval_groups) {
+#	cat("entering crossval_select_beta_penalty_factor\n")
 	data_split <- lapply(unique(data_concat$subject), function(subj) {
 		list(y = data_concat$y[data_concat$subject == subj],
 			X = data_concat$X[data_concat$subject == subj, , drop = FALSE])
@@ -852,13 +863,14 @@ crossval_select_beta_penalty_factor <- function(data_concat, prev_log_obs_probs_
           						  rngstream = rngstream,
           						  rstream_offset = rstream_offset,
           						  crf_control = crf_control,
-#                        method = "Brent",
-												method = "L-BFGS-B",
+                        method = "Brent",
+#												method = "L-BFGS-B",
 												lower = 0,
-#                        upper = 10000,
+                        upper = 10000,
                         control = list(),
                         hessian = FALSE)
 #  browser()
+#	cat("exiting crossval_select_beta_penalty_factor\n")
 	return(optim_result$par)
 }
 
@@ -914,6 +926,7 @@ lccrf_crossval_est_neg_prop_correct_by_beta_penalty_factor <- function(beta_pena
 
 
 lccrf_crossval_est_neg_val_log_lik_by_beta_penalty_factor <- function(beta_penalty_factor, data_concat, data_split, crossval_group_inds, crossval_groups, rngstream, rstream_offset, crf_control) {
+#  cat("entering lccrf_crossval_est_neg_val_log_lik_by_beta_penalty_factor\n")
   if(identical(crf_control$parallel_method, "none")) {
     crossval_lapply_method <- lapply
   } else if(identical(crf_control$parallel_method, "snowfall")) {
@@ -962,7 +975,7 @@ lccrf_crossval_est_neg_val_log_lik_by_beta_penalty_factor <- function(beta_penal
         omegas <- calc_omegas_from_omega_hat(component_fit$omega_hat[[1]], S, crf_control)
         
         return(lccrf_update_log_lik_parametric(betas = component_fit$beta_hat[[1]], omegas = omegas,
-          active_cols = component_fit$active_cols[[1]], beta_penalty_factor = 0, CRF_Xptr = CRF_Xptr,
+          active_cols = which(component_fit$active_cols[[1]]), beta_penalty_factor = 0, CRF_Xptr = CRF_Xptr,
           data_split = data_split[crossval_groups[[ind]][group_sub]], log_alpha = 0,
           prev_log_obs_probs_by_state = prev_log_obs_probs_by_state, crf_control = crf_control, retall = FALSE))
       }))
@@ -976,7 +989,8 @@ lccrf_crossval_est_neg_val_log_lik_by_beta_penalty_factor <- function(beta_penal
   rstream.packed(rngstream) <- FALSE
 
   # IF ANYTHING BELOW HERE REQUIRED RNG, I MIGHT HAVE TO RESET rngstream -- BUT IT DOESN'T
-  cat(-1 * sum(crossval_log_liks))
+#  cat(-1 * sum(crossval_log_liks))
+#  cat("exiting lccrf_crossval_est_neg_val_log_lik_by_beta_penalty_factor\n")
   return(-1 * sum(crossval_log_liks))
 }
 
@@ -1222,8 +1236,6 @@ predict_lccrf_parametric <- function(data_split, fit, component_model_combine_me
 	T_sub <- sapply(data_split, function(comp) length(comp$y))
 	T_total <- sum(T_sub)
 
-	D <- ncol(data_split[[1]]$X)
-
 	data_split <- lapply(data_split, function(comp) {
 		if(!isTRUE(all.equal(comp$X[, 1], rep(1, nrow(comp$X)))) && fit$crf_control$add_intercept)
 			comp$X <- cbind(rep(1, nrow(comp$X)), comp$X)
@@ -1242,6 +1254,8 @@ predict_lccrf_parametric <- function(data_split, fit, component_model_combine_me
 		return(comp)
 	})
 
+	D <- ncol(data_split[[1]]$X)
+
 	# get a C representation of a CRF
     CRF_Xptr <- initialize_new_CRF(D, S)
 
@@ -1259,7 +1273,7 @@ predict_lccrf_parametric <- function(data_split, fit, component_model_combine_me
 			})
 
 			# assume estimated log pi is the same in all components
-			set_HMM_pi_from_log(CRF_Xptr, fit$component_fits[[fit_ind]]$log_pi_hat)
+			set_CRF_pi_from_log(CRF_Xptr, fit$component_fits[[fit_ind]]$log_pi_hat)
 
 			if(length(fit$component_fits[[fit_ind]]$validate_log_lik_trace) <= 1) {
 				M <- length(fit$component_fits[[fit_ind]]$beta_hat)
@@ -1326,7 +1340,7 @@ predict_lccrf_parametric <- function(data_split, fit, component_model_combine_me
 		# estimated log pi
 		temp <- rbind.fill.matrix(lapply(fit$component_fits, function(cvfit) matrix(cvfit$log_pi_hat, nrow = 1)))
 		combined_log_pi_hat <- apply(temp, 2, mean)
-		set_HMM_pi_from_log(CRF_Xptr, combined_log_pi_hat)
+		set_CRF_pi_from_log(CRF_Xptr, combined_log_pi_hat)
 
 		# estimated omegas
 		temp <- rbind.fill.matrix(lapply(seq_len(num_component_fits), function(fit_ind) {
@@ -1470,8 +1484,17 @@ calc_marginal_class_probs_given_log_obs_probs_CRF <- function(CRF_Xptr, observed
 # C interface -- transition matrix should be set already
 globalSeqCRF_update_log_lik_C_interface <- function(HMM_Xptr, obs_HMMs_split, prev_log_obs_probs_by_state,
     betas, cols, retall) {
-    .Call("parametric_CRF_update_log_lik_C", HMM_Xptr, obs_HMMs_split, prev_log_obs_probs_by_state,
+#    browser()
+#    print(HMM_Xptr)
+#    print(obs_HMMs_split)
+#    print(prev_log_obs_probs_by_state)
+#    print(betas)
+#    print(cols)
+#    print(retall)
+    result <- .Call("parametric_CRF_update_log_lik_C", HMM_Xptr, obs_HMMs_split, prev_log_obs_probs_by_state,
         as.numeric(betas), as.integer(cols), as.integer(retall))
+#    print("end call")
+    return(result)
 }
 
 # interface with betas as first parameter -- sets transition matrix and calls C interface
