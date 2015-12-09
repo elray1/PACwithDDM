@@ -1,5 +1,8 @@
-for(data_set in c("Mannini", "SasakiLab", "SasakiFreeLiving")) {
-	if(identical(data_set, "Mannini")) {
+options(warn = 2, error = recover)
+
+#for(data_set in c("Mannini", "SasakiLab", "SasakiFreeLiving")) {
+for(data_set in c("SasakiFreeLiving")) {
+    if(identical(data_set, "Mannini")) {
 		location_levels <- c("ankle", "wrist")
 #		location_levels <- c("wrist")
 	} else {
@@ -16,8 +19,9 @@ for(data_set in c("Mannini", "SasakiLab", "SasakiFreeLiving")) {
 			for(fit_method in c("L2RegularizedCRF")) {
 				for(reduced_trans_mat_parameterization in c(FALSE)) {
 #					files_path <- file.path("/home", "er71a", "HMMapplication", data_set, location, class_var, fit_method)
-					files_path <- file.path("C:", "Stat", "HMM", "PACwithDDM", "inst", "results", data_set, location, class_var, fit_method)
-					setwd(files_path)
+#					files_path <- file.path("C:", "Stat", "HMM", "PACwithDDM", "inst", "results", data_set, location, class_var, fit_method)
+				    files_path <- file.path("F:", "Evan", "PACwithDDM-linux", "pacwithddm", "inst", "results", data_set, location, class_var, fit_method)
+				    setwd(files_path)
 					
 					if(identical(data_set, "SasakiFreeLiving")) {
 						N <- 15
@@ -32,9 +36,11 @@ for(data_set in c("Mannini", "SasakiLab", "SasakiFreeLiving")) {
 					}
 					
 					for(subject in seq_len(N)) {
-						if(!file.exists(file.path("C:", "Stat", "HMM", "PACwithDDM", "inst", "results", data_set, location, class_var, fit_method, paste0("results_FullTrans_subject", subject, ".Rdata")))) {
+					    if(!file.exists(file.path("F:", "Evan", "PACwithDDM-linux", "pacwithddm", "inst", "results", data_set, location, class_var, fit_method, paste0("results_FullTrans_subject", subject, ".Rdata")))) {
+#						if(!file.exists(file.path("C:", "Stat", "HMM", "PACwithDDM", "inst", "results", data_set, location, class_var, fit_method, paste0("results_FullTrans_subject", subject, ".Rdata")))) {
 							system_cmd <- paste0("R --vanilla --args ", subject, " ", data_set, " ", location, " ", class_var, " ", fit_method, " ", reduced_trans_mat_parameterization,
-								" < C:/Stat/HMM/PACwithDMM/inst/appliedPAClassificationScripts/runMethods/LOSO_crossval.R")
+							    " < F:/Evan/PACwithDDM-linux/pacwithddm/inst/appliedPAClassificationScripts/runMethods/LOSO_crossval.R")
+#								" < C:/Stat/HMM/PACwithDDM/inst/appliedPAClassificationScripts/runMethods/LOSO_crossval.R")
 							
 							system(system_cmd, intern = TRUE)
 						} else {

@@ -66,7 +66,8 @@ if(reduced_trans_mat_parameterization) {
 
 save_file_name <- paste0(save_file_name, "_subject", subj, ".Rdata")
 
-save_path <- file.path("C:", "Stat", "HMM", "PACwithDDM", "inst", "results", data_set, location, class_var, fit_method, save_file_name)
+save_path <- file.path("F:", "Evan", "PACwithDDM-linux", "pacwithddm", "inst", "results", data_set, location, class_var, fit_method, save_file_name)
+#save_path <- file.path("C:", "Stat", "HMM", "PACwithDDM", "inst", "results", data_set, location, class_var, fit_method, save_file_name)
 #save_path <- file.path("/home", "er71a", "HMMapplication", "results", data_set, location, class_var, fit_method, save_file_name)
 #save_path <- file.path("/home", "em"/", "Stat", "hmm", "hmmensembles", "HMMapplication", "results", data_set, location, class_var, fit_method, save_file_name)
 
