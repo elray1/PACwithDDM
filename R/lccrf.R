@@ -266,7 +266,7 @@ lccrf <- function(data_concat, crf_control, rngstream, resume_from) {
 
 
 	# clean up X
-	if(crf_control$fit_method %in%  c("parametric-boost", "parametric-L2-penalized-MLE")) {
+	if(crf_control$fit_method %in%  c("parametric-boost", "parametric-boost-MLR", "parametric-L2-penalized-MLE")) {
   		# add leading column of 1's if necessary
   		if(!isTRUE(all.equal(data_concat$X[, 1], rep(1, T_total))) && crf_control$add_intercept) {
   			data_concat$X <- cbind(rep(1, T_total), data_concat$X)
@@ -337,7 +337,7 @@ lccrf <- function(data_concat, crf_control, rngstream, resume_from) {
   	  rstream.packed(rngstream) <- FALSE
 	# rng is not used again, or I would need to update rngstream
 
-  } else if(crf_control$fit_method %in% c("parametric-boost", "gradient-tree-boost")) {
+  } else if(crf_control$fit_method %in% c("parametric-boost","parametric-boost-MLR", "gradient-tree-boost")) {
     # if necessary, perform cross-validation to select tree depths and/or num active vars
     # this call affects rngstream state -- note that no rng is done below without first resetting rngstream state
     if(identical(crf_control$fit_method, "gradient-tree-boost") &&
@@ -455,7 +455,7 @@ lccrf <- function(data_concat, crf_control, rngstream, resume_from) {
 			  resume_from = resume_from)))
   }
 
-	if(crf_control$fit_method %in%  c("parametric-boost", "parametric-L2-penalized-MLE")) {
+	if(crf_control$fit_method %in%  c("parametric-boost", "parametric-boost-MLR", "parametric-L2-penalized-MLE")) {
 		temp_result$cent <- cent
 		temp_result$scal <- scal
 	}
@@ -673,7 +673,9 @@ lccrf_est_one_component_parametric <- function(CRF_Xptr, data_concat, data_split
 #		cat('.')
 		attempt_num <- attempt_num + 1
 		
-		if(first_term) {
+		if(identical(crf_control$fit_method, "parametric-boost-MLR")) {
+			omega_hat <- rep(0, S * S - 1)
+		} else if(first_term) {
 		  #			data_concat <- list(y = rbind.fill.matrix(lapply(data_split, function(comp) as.integer(comp$y))))
 		  #			data_concat$subject <- rep(seq_along(data_split), sapply(data_split, function(comp) length(comp$y)))
 		  if(crf_control$reduced_trans_mat_parameterization) {
@@ -1223,7 +1225,7 @@ predict_lccrf <- function(data_split, fit, component_model_combine_method = "equ
 		return(comp)
 	})
 	
-	if(fit$crf_control$fit_method %in%  c("parametric-boost", "parametric-L2-penalized-MLE")) {
+	if(fit$crf_control$fit_method %in%  c("parametric-boost", "parametric-boost-MLR", "parametric-L2-penalized-MLE")) {
 		predict_lccrf_parametric(data_split, fit, component_model_combine_method = component_model_combine_method, predict_method = predict_method, M_selection_method = M_selection_method, return_class_probs = return_class_probs)
 	} else {
 		stop("Invalid value for crf_control$fit_method.")

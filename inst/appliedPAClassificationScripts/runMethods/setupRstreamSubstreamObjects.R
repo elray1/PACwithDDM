@@ -7,33 +7,17 @@ library("PACwithDDM")
 # fit method
 save_location <- file.path(find.package("PACwithDDM"), "appliedPAClassificationScripts", "rngstreams")
 
-# First, build a data frame with the number of substreams used for each fit_method and
-# whether or not a reduced transition matrix is relevant for that method
-
-# possible levels for method
-all_fit_methods <- c("RF", "normalHMM", "L2RegularizedCRF", "RFHMM")
-
-# whether the reduced_trans_mat_parameterization is relevant to each method
-reduced_trans_mat_parameterization_relevant <- c(FALSE, TRUE, TRUE, TRUE)
+# First, build a data frame with the number of substreams used for each fit_method
 
 # create the data frame discussed above -- initialize with all combinations, then remove irrelevant combinations
-substream_df <- data.frame(fit_method = rep(all_fit_methods, each = 2),
-	reduced_trans = rep(c(TRUE, FALSE), times = length(all_fit_methods)),
+substream_df <- data.frame(fit_method = c("RF", "normalHMM", "parametricBoostCRF", "parametricBoostMLR", "RFHMM"),
+	substreams_used = c(1, # RF: 1 stream for all subjects
+	1, # normalHMM: 1 stream for all subjects
+	10001, # parametricBoostCRF: 1 to generate sequence bag groups + M_bag = 10000, one for each bag group
+	10001, # parametricBoostMLR: 1 to generate sequence bag groups + M_bag = 10000, one for each bag group
+	0), # normalFMM: the method does not require random number generation
 	stringsAsFactors = FALSE)
 
-# remove rows where reduced_trans_mat_parameterization is not relevant and reduced_trans is FALSE
-to_remove <- substream_df$fit_method %in% all_fit_methods[!reduced_trans_mat_parameterization_relevant] & !substream_df$reduced_trans
-substream_df <- substream_df[!to_remove, ]
-
-# set number of substreams used per subject -- depends on fit_method only
-num_substreams_used <- c("RF"=1, # RF: 1 stream for all subjects
-	"normalHMM"=1, # normalHMM: 1 stream for all subjects in each case of FullTrans and ReducedTrans
-	"L2RegularizedCRF"=11, # L2RegularizedCRF: 1 to generate sequence crossvalidation groups + K_crossval = 10, one for each crossvalidation group
-	"RFHMM"=0) # RFHMM: the method uses the fits created for the RF method above.
-
-substream_df$substreams_used <- sapply(substream_df$fit_method, function(fm) {
-	num_substreams_used[all_fit_methods == fm]
-})
 
 
 # create rstream object.  the seed values are randomly generated.
@@ -48,16 +32,16 @@ for(data_set in c("Mannini", "SasakiFreeLiving", "SasakiLab")) {
     # depending on data_set
     if(identical(data_set, "Mannini")) {
         N <- 33
-        locations <- c("ankle", "hip", "wrist")
+        locations <- c("ankle", "wrist")
         class_vars <- c("y_category4", "y_intensity")
     } else if(identical(data_set, "SasakiFreeLiving")) {
         N <- 15
-        locations <- c("ankle", "hip", "wrist")
-        class_vars <- c("y_category5", "y_category3", "y_intensity")
+        locations <- c("ankle", "wrist")
+        class_vars <- c("y_category3", "y_intensity")
     } else {
-		N <- 35
-        locations <- c("ankle", "hip", "wrist")
-        class_vars <- c("y_category5", "y_category3", "y_intensity")
+    		N <- 35
+        locations <- c("ankle", "wrist")
+        class_vars <- c("y_category3", "y_intensity")
     }
 
 	for(location in locations) {
@@ -67,8 +51,7 @@ for(data_set in c("Mannini", "SasakiFreeLiving", "SasakiLab")) {
 					rstream.packed(rngstream) <- TRUE
 					stream_filename <- paste0(paste("rngstream", data_set, location, class_var,
                         substream_df$fit_method[current_scenario_row_ind],
-						"reducedTrans", as.character(substream_df$reduced_trans[current_scenario_row_ind]),
-						"subj", subj, sep = "_"), ".rdata")
+												"subj", subj, sep = "_"), ".rdata")
 					save(rngstream, file = file.path(save_location, stream_filename))
 					rstream.packed(rngstream) <- FALSE
                     for(i in seq_len(substream_df$substreams_used[current_scenario_row_ind])) {
@@ -79,4 +62,3 @@ for(data_set in c("Mannini", "SasakiFreeLiving", "SasakiLab")) {
 		} # class_var
 	} # location
 } # data_set
-

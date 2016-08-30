@@ -8,14 +8,17 @@ data_set <- args[2]
 location <- args[3]
 class_var <- args[4]
 fit_method <- args[5]
-reduced_trans_mat_parameterization <- as.logical(args[6])
+#reduced_trans_mat_parameterization <- as.logical(args[6])
 
-#subj <- 1L
-#data_set <- "Mannini"
-#location <- "ankle"
-#class_var <- "y_category4"
-#fit_method <- "L2RegularizedCRF"
-#reduced_trans_mat_parameterization <- FALSE
+# subj <- 1L
+ 
+# data_set <- "Mannini"
+# location <- "ankle"
+# class_var <- "y_category4"
+# fit_method <- "normalFMM"
+# fit_method <- "parametricBoostCRF"
+# fit_method <- "parametricBoostMLR"
+# reduced_trans_mat_parameterization <- FALSE
 
 #subj <- 1L
 #data_set <- "SasakiLab"
@@ -28,10 +31,10 @@ reduced_trans_mat_parameterization <- as.logical(args[6])
 ## set up cluster
 library("snowfall")
 
-if(fit_method %in% c("normalHMM", "RF", "RFHMM")) {
+if(fit_method %in% c("normalHMM", "normalFMM", "RF")) {
 	sfInit(parallel = FALSE, cpus = 1, type = "SOCK")
 } else {
-	sfInit(parallel = TRUE, cpus = 10, type = "SOCK")
+	sfInit(parallel = TRUE, cpus = 50, type = "SOCK")
 #    sfInit(parallel = FALSE, cpus = 1, type = "SOCK")
 }
 
@@ -42,11 +45,13 @@ sfLibrary("plyr", character.only = TRUE)
 
 sfLibrary("PACwithDDM", character.only = TRUE)
 
-sfLibrary("randomForest", character.only = TRUE)
-sfLibrary("rpart", character.only = TRUE)
+if(identical(fit_method, "RF")) {
+	sfLibrary("randomForest", character.only = TRUE)
+}
+#sfLibrary("rpart", character.only = TRUE)
 sfLibrary("nnet", character.only = TRUE)
 
-if(identical(fit_method, "normalHMM")) {
+if(fit_method %in% c("normalHMM", "normalFMM")) {
 	library("mclust")
 	library("car")
 	library("mvtnorm")
@@ -58,17 +63,11 @@ sfLibrary("rstream", character.only = TRUE)
 
 
 ## construct save path
-if(reduced_trans_mat_parameterization) {
-	save_file_name <- "results_ReducedTrans"
-} else {
-	save_file_name <- "results_FullTrans"
-}
+save_file_name <- paste0("results_subject", subj, ".Rdata")
 
-save_file_name <- paste0(save_file_name, "_subject", subj, ".Rdata")
-
-save_path <- file.path("F:", "Evan", "PACwithDDM-linux", "pacwithddm", "inst", "results", data_set, location, class_var, fit_method, save_file_name)
+#save_path <- file.path("F:", "Evan", "PACwithDDM-linux", "pacwithddm", "inst", "results", data_set, location, class_var, fit_method, save_file_name)
 #save_path <- file.path("C:", "Stat", "HMM", "PACwithDDM", "inst", "results", data_set, location, class_var, fit_method, save_file_name)
-#save_path <- file.path("/home", "er71a", "HMMapplication", "results", data_set, location, class_var, fit_method, save_file_name)
+save_path <- file.path("/home", "er71a", "HMMapplication", "results", data_set, location, class_var, fit_method, save_file_name)
 #save_path <- file.path("/home", "em"/", "Stat", "hmm", "hmmensembles", "HMMapplication", "results", data_set, location, class_var, fit_method, save_file_name)
 
 
@@ -135,9 +134,8 @@ test_data <- list(X = fit_data$X[fit_data$subject == subj, , drop = FALSE],
 
 
 ## load rngstream object specific to data_set, location, class_var, fit_method, reduced_trans, update_trans
-if(! fit_method %in% c("RFHMM", "MLRHMM", "SVM")) {
+if(! fit_method %in% c("normalFMM")) {
 	stream_filename <- paste("rngstream", data_set, location, class_var, fit_method,
-		"reducedTrans", as.character(reduced_trans_mat_parameterization),
 		"subj", subj, sep = "_")
     
     load(file = file.path(find.package("PACwithDDM"), "appliedPAClassificationScripts", "rngstreams", paste0(stream_filename, ".rdata")))
@@ -149,16 +147,21 @@ if(! fit_method %in% c("RFHMM", "MLRHMM", "SVM")) {
 rng_seed <- NULL
 rstream_substream_offset <- 0
 
-if(identical(fit_method, "L2RegularizedCRF")) {
-	crf_control <- lccrf_control(fit_method = "parametric-L2-penalized-MLE", reduced_trans_mat_parameterization = FALSE, quadratic = FALSE,
-		bag_method = "none",
-		update_transition_matrix = TRUE, M_boost = 1, M_boost_search_threshold = 0, num_active_vars = D, active_var_search_method = "random", max_attempts = 1,
-		beta_initialization = "MLR", beta_penalty_factor = "crossval-select", 
-		K_crossval = 10,
-		optim_method = "L-BFGS-B", parallel_method = "snowfall",
-		rng_method = "rstream", rng_seed = rng_seed, rstream_substream_offset = rstream_substream_offset, save_freq = Inf, save_path = "", save_filename_base = "")
-	
-} else if(!(fit_method %in% c("RF", "RFHMM", "normalHMM"))) {
+if(identical(fit_method, "parametricBoostCRF")) {
+  crf_control <- lccrf_control(fit_method = "parametric-boost", reduced_trans_mat_parameterization = FALSE, quadratic = FALSE,
+    bag_method = "sequence", M_bag = 10000, sequence_bag_sample_size = N - 1, sequence_bag_sample_replace = TRUE,
+    update_transition_matrix = TRUE, M_boost = 100, M_boost_search_threshold = 100, num_active_vars = 1, active_var_search_method = "random", max_attempts = 100,
+    beta_initialization = "MLR", beta_penalty_factor = 0,
+    optim_method = "L-BFGS-B", parallel_method = "snowfall",
+    rng_method = "rstream", rng_seed = rng_seed, rstream_substream_offset = rstream_substream_offset, save_freq = Inf, save_path = "", save_filename_base = "")
+} else if(identical(fit_method, "parametricBoostMLR")) {
+  crf_control <- lccrf_control(fit_method = "parametric-boost-MLR", reduced_trans_mat_parameterization = FALSE, quadratic = FALSE,
+    bag_method = "sequence", M_bag = 10000, sequence_bag_sample_size = N - 1, sequence_bag_sample_replace = TRUE,
+    update_transition_matrix = FALSE, M_boost = 100, M_boost_search_threshold = 100, num_active_vars = 1, active_var_search_method = "random", max_attempts = 100,
+    beta_initialization = "MLR", beta_penalty_factor = 0,
+    optim_method = "L-BFGS-B", parallel_method = "snowfall",
+    rng_method = "rstream", rng_seed = rng_seed, rstream_substream_offset = rstream_substream_offset, save_freq = Inf, save_path = "", save_filename_base = "")
+} else if(!(fit_method %in% c("RF", "normalHMM", "normalFMM"))) {
 	stop("Invalid fit_method")
 }
 
@@ -179,47 +182,7 @@ if(identical(fit_method, "RF")) {
 
 	y_pred <- predict(fit, rftest_data)
 	log_class_probs <- log(predict(fit, rftest_data, type = "prob"))
-} else if(identical(fit_method, "RFHMM")) {
-    ## requires fit_method "RF" to have been run first
-	if(drop_move_intermittently) {
-		rf_save_file_name <- paste0("ReducedTrans_subject", subj, "_dropMovInter.Rdata")
-	} else {
-		rf_save_file_name <- paste0("ReducedTrans_subject", subj, ".Rdata")
-	}
-	rf_save_path <- file.path("C:", "Stat", "HMM", "HMMEnsembles", "HMMapplication", "Sasaki", "results", data_set, location, class_var, "RF", rf_save_file_name)
-	rf_env <- new.env()
-	load(rf_save_path, envir = rf_env)
-	rf_log_class_probs <- list(rf_env$log_class_probs)
-
-	classes <- levels(train_data$y)
-
-	fit_time <- system.time({
-		log_marginal_class_probs <- sapply(levels(train_data$y), function(lvl) {log(sum(train_data$y == lvl)) - log(length(train_data$y))})
-		# get estimated transition matrix
-		if(reduced_trans_mat_parameterization) {
-			log_trans_matrix <- estimate_transition_matrix_reduced_parameterization_states_observed(train_data$y,
-				train_data$subject, length(classes), log = TRUE)
-		} else {
-			log_trans_matrix <- estimate_transition_matrix_full_parameterization_states_observed(train_data$y,
-				train_data$subject, length(classes), log = TRUE)
-		}
 	
-		new_HMM <- initialize_new_HMM_for_IACL(train_data$X, table(train_data$subject), length(classes), root_lower_endpoints = NULL, root_upper_endpoints = NULL,
-										   endpoint_expansion_factor = 1, L_max = 1, N_min = 1,
-										   split_var_method = "best", K_var = 1, split_pt_method = "unif_data_based", K_pt = 1, split_eps = 0.0000001,
-										   return_method = "Xptr", random_rotation = FALSE, pre_sphere = FALSE)
-
-		HMM_Xptr <- new_HMM$HMM
-
-		set_HMM_pi_from_log(HMM_Xptr, log_marginal_class_probs)
-		set_HMM_trans_matrix_from_log(HMM_Xptr, log_trans_matrix)
-	
-		mcshane_fit <- list(log_marginal_class_probs = log_marginal_class_probs, log_trans_mat = log_trans_matrix)
-	
-		log_class_probs <- calc_log_McShane_class_probs_given_log_static_class_probs_R_interface(HMM_Xptr, log_marginal_class_probs, 1, length(test_data$y), rf_log_class_probs)
-	})
-
-	y_pred <- unlist(lapply(log_class_probs, function(comp) apply(comp, 1, which.max)))
 } else if(identical(fit_method, "normalHMM")) {
 	classes <- levels(train_data$y)
 
@@ -257,6 +220,36 @@ if(identical(fit_method, "RF")) {
 
 	y_pred <- predict_HMM_given_log_obs_probs_multi_subject(length(classes), test_data$subject, log_obs_probs, log(table(train_data$y) / length(train_data$y)), log_trans_matrix)
 	log_class_probs <- calc_HMM_class_probs_given_log_obs_probs_multi_subject(length(classes), test_data$subject, log_obs_probs, log(table(train_data$y) / length(train_data$y)), log_trans_matrix, log = TRUE)
+	
+} else if(identical(fit_method, "normalFMM")) {
+	classes <- levels(train_data$y)
+
+	fit_time <- system.time({
+		# perform box-cox transformation -- separate transformation for each covariate and class,
+		# estimating transform parameters from training data and applying to both train and test data
+		transform_params <- lapply(seq_len(ncol(train_data$X)), function(colind) powerTransform(train_data$X[, colind] ~ train_data$y, family = "yjPower"))
+		for(colind in seq_len(ncol(train_data$X))) {
+			train_data$X[, colind] <- yjPower(train_data$X[, colind], coef(transform_params[[colind]], round = TRUE))
+			test_data$X[, colind] <- yjPower(test_data$X[, colind], coef(transform_params[[colind]], round = TRUE))
+		}
+    
+		# get estimated normal components for each class
+		class_norms <- lapply(classes, function(class_name) {
+			mclust_fit <- densityMclust(train_data$X[train_data$y == class_name, ], G = 1:9)
+			M_mclust <- ncol(mclust_fit$parameters$mean)
+			return(list(rho = mclust_fit$parameters$pro,
+				mus = lapply(seq_len(M_mclust), function(ind) mclust_fit$parameters$mean[, ind]),
+				Sigmas = lapply(seq_len(M_mclust), function(ind) mclust_fit$parameters$variance$sigma[, , ind])))
+		})
+  
+		log_obs_probs <- as.matrix(as.data.frame(lapply(seq_along(classes), function(s) {
+			dGMM(test_data$X, rhos = class_norms[[s]]$rho, mus = class_norms[[s]]$mus, Sigmas = class_norms[[s]]$Sigmas, log = TRUE)
+		})))
+	})
+
+	log_class_probs <- log_obs_probs
+	y_pred <- apply(log_obs_probs, 1, which.max)
+	
 } else {
 	fit_time <- system.time({
 		crf_fit <- lccrf(data_concat = train_data, crf_control = crf_control, rngstream = rngstream)
@@ -274,4 +267,3 @@ prop_correct <- num_correct / length(test_data$y)
 
 ## save results
 save(subj, fit_time, y_pred, log_class_probs, confusion_matrix, num_correct, prop_correct, file = save_path)
-

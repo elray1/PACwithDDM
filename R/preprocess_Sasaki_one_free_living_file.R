@@ -71,7 +71,8 @@ Sasaki_preprocess_one_free_living_file <- function(actigraph_file_path, DO_file_
   y_behavior[orig_inds_to_modify] <- "MovInter"
   
   # convert to factor
-  y_behavior <- factor(y_behavior, levels = c(levels(unprocessed_data$behavior), "transition"))
+  y_behavior <- factor(y_behavior,
+    levels = c(levels(unprocessed_data$behavior)[levels(unprocessed_data$behavior) != ""], "transition"))
   
   
   ## category5
@@ -130,7 +131,8 @@ Sasaki_preprocess_one_free_living_file <- function(actigraph_file_path, DO_file_
   y_category5[orig_inds_to_modify] <- "MovInter"
   
   # convert to factor
-  y_category5 <- factor(y_category5, levels = c(levels(unprocessed_data$category5), "transition"))
+  y_category5 <- factor(y_category5,
+    levels = c(levels(unprocessed_data$category5)[levels(unprocessed_data$category5) != ""], "transition"))
   
   
   ## category3
@@ -190,7 +192,8 @@ Sasaki_preprocess_one_free_living_file <- function(actigraph_file_path, DO_file_
   y_category3[orig_inds_to_modify] <- "MovInter"
   
   # convert to factor
-  y_category3 <- factor(y_category3, levels = c(levels(unprocessed_data$category3), "transition"))
+  y_category3 <- factor(y_category3,
+    levels = c(levels(unprocessed_data$category3)[levels(unprocessed_data$category3) != ""], "transition"))
   
   
   ## intensity
@@ -207,7 +210,8 @@ Sasaki_preprocess_one_free_living_file <- function(actigraph_file_path, DO_file_
   														}))
     
   # convert to factor
-  y_intensity <- factor(y_intensity, levels = c(levels(unprocessed_data$behavior_mod_2), "transition"))
+  y_intensity <- factor(y_intensity,
+    levels = c(levels(unprocessed_data$behavior_mod_2)[levels(unprocessed_data$behavior_mod_2) != ""], "transition"))
   
   
   results <- list(X = X,

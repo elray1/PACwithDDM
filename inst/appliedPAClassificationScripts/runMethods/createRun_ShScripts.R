@@ -1,25 +1,19 @@
 for(data_set in c("Mannini", "SasakiLab", "SasakiFreeLiving")) {
 	if(identical(data_set, "Mannini")) {
-#		location_levels <- c("ankle", "wrist")
-		location_levels <- c("wrist")
+		location_levels <- c("ankle", "wrist")
+		class_var_levels <- c("y_category4", "y_intensity")
 	} else {
-		location_levels <- c("ankle", "hip", "wrist")
+		location_levels <- c("ankle", "wrist")
+		class_var_levels <- c("y_category3", "y_intensity")
 	}
 	for(location in location_levels) {
-#	for(location in c("ankle")) {
-		if(identical(data_set, "Mannini")) {
-			class_var_levels <- c("y_category4", "y_intensity")
-		} else {
-			class_var_levels <- c("y_category3", "y_category5", "y_intensity")
-		}
-
 		for(class_var in class_var_levels) {
-			for(fit_method in c("L2RegularizedCRF")) {
+			for(fit_method in c("parametricBoostCRF", "parametricBoostMLR")) {
 				cores_req <- "10"
 				span_one_host <- TRUE
 				mem_req <- "5000"
-				time_req <- "4:00"
-				queue_req <- "short"
+				time_req <- "24:00"
+				queue_req <- "long"
 				
 				for(reduced_trans_mat_parameterization in c(FALSE)) {
 					files_path <- file.path("/home", "er71a", "HMMapplication", data_set, location, class_var, fit_method)
