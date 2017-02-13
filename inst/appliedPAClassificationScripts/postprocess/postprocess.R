@@ -6,23 +6,20 @@ options(warn = 2, error = recover)
 
 pacwithddm_source_location <- "C:/Stat/HMM/PACwithDDM"
 
-#combined_results_dir <- "C:/Stat/HMM/HMMEnsembles/rayThesis/data/"
-#results_dir_base <- "C:/Stat/HMM/HMMEnsembles/HMMapplication/"
-#combined_results_dir <- "F:/Evan/PACwithDDM-linux/pacwithddm/data"
-#results_dir_base <- "F:/Evan/PACwithDDM-linux/pacwithddm/inst/results"
 combined_results_dir <- file.path(pacwithddm_source_location, "data")
 results_dir_base <- file.path(pacwithddm_source_location, "inst/results")
 
 
 for(data_set in c("Mannini", "SasakiLab", "SasakiFreeLiving")) {
-  location_levels <- c("ankle", "wrist")
+#  location_levels <- c("ankle", "wrist")
+#for(data_set in c("Mannini")) {
 
   for(class_var_group in c("Type", "Intensity")) {
     results_df <- data.frame(location = NA, class_var = NA, fit_method = NA, case = NA, subject = NA,
       prop_correct = NA, F1_score_macro = NA, mse_pred = NA)
     row_num <- 1
     
-    for(location in location_levels) {
+    for(location in c("ankle", "wrist")) {
       if(identical(data_set, "SasakiFreeLiving")) {
         N <- 15
         
