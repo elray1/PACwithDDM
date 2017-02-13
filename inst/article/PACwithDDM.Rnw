@@ -1,0 +1,1617 @@
+\documentclass[12pt]{article}
+
+\usepackage{verbatim,color,amssymb,epsfig}
+\usepackage{amsthm}
+\usepackage{natbib}
+\usepackage[usenames,dvipsnames]{xcolor}
+\usepackage{fancyhdr}
+
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{paralist}
+\usepackage[figuresright]{rotating}
+\usepackage{graphicx}
+\usepackage{listings}
+\usepackage{float}
+
+\newcommand{\lbl}[1]{\label{#1}{\fbox{\tiny\upshape#1}}}
+%\newcommand{\lbl}[1]{\label{#1}}
+
+\setlength{\textheight}{9in}
+\setlength{\textwidth}{6.5in}
+\setlength{\topmargin}{-36pt}
+\setlength{\oddsidemargin}{0pt}
+\setlength{\evensidemargin}{0pt}
+\tolerance=500
+\renewcommand{\baselinestretch}{1.5}
+
+
+\include{GrandMacros}
+\newcommand{\norm}[1]{\vert\vert #1 \vert\vert}
+\newcommand{\ind}{\mathbb{I}}
+
+\theoremstyle{plain}
+\newtheorem{algorithm}{Algorithm}
+
+\newfloat{AlgorithmWrapper}{tbp}{lop}
+
+%\linespread{1.6}
+
+
+\newcolumntype{R}[1]{>{\begin{turn}{90}\begin{minipage}{#1}\normalsize}l%
+<{\end{minipage}\end{turn}}%
+}
+
+<<echo = FALSE, warning = FALSE, message = FALSE>>=
+library("knitr")
+opts_chunk$set(echo = FALSE, fig.path = "Plots/", cache = FALSE)
+
+library("PACwithDDM")
+library("ggplot2")
+library("grid")
+library("reshape")
+library("plyr")
+library("dplyr")
+library("tidyr")
+library("rstream")
+library("mvtnorm")
+library("MASS")
+library("gtable")
+
+color_palette3 <- c("#e66101", "#fdb863", "#2d004b")
+color_palette4 <- c("#e66101", "#fdb863", "#b2abd2", "#5e3c99")
+color_palette4_wl <- c("#e66101", "#fdb863", "#5e3c99", "#f7f7f7")
+color_palette5 <- c("#e66101", "#fdb863", "#f7f7f7", "#5e3c99", "#2d004b")
+color_palette9_wl <- c("#b35806", "#e08214", "#fdb863", "#fee0b6", "#d8daeb", "#b2abd2", "#8073ac", "#542788", "#f7f7f7")
+color_palette11_wl <- c("#7f3b08", "#b35806", "#e08214", "#fdb863", "#fee0b6", "#d8daeb", "#b2abd2", "#8073ac", "#542788", "#2d004b", "#f7f7f7")
+@
+
+%\numberwithin{equation}{section}
+
+\begin{document}
+%\SweaveOpts{concordance=TRUE}
+
+\thispagestyle{empty}
+\begin{center}
+{\LARGE{\bf  Physical Activity Classification with Dynamic, Discriminative Methods}}
+\end{center}
+\baselineskip=12pt
+
+\vskip 10mm
+\begin{center}
+Evan Ray\\
+Department of Mathematics and Statistics, University of Massachusetts, \\
+Amherst, MA 01003-9305, USA \\
+Evan.L.Ray@gmail.com\\
+\hskip 5mm \\
+Jeffer Sasaki\\
+Graduate Program in Physical Education, Universidade Federal do Triangulo Mineiro, \\
+Uberaba, Minas Gerais, Brazil \\
+\hskip 5mm \\
+Patty Freedson\\
+Department of Kinesiology, University of Massachusetts, \\
+Amherst, MA 01003-9305, USA \\
+\hskip 5mm \\
+John Staudenmayer\\
+Department of Mathematics and Statistics, University of Massachusetts, \\
+Amherst, MA 01003-9305, USA \\
+\end{center}
+
+
+
+
+
+\vskip 10mm
+\begin{center}
+{\Large{\bf Abstract}}
+\end{center}
+\baselineskip=12pt
+A person's physical activity has important health implications, so it is important to be able to be able to measure aspects of physical activity objectively. One approach to doing that is to use data from an accelerometer to classify physical activity according to either activity type (e.g., lying down, sitting, standing, or walking) or intensity (e.g., sedentary, light, moderate, or vigorous).  This can be formulated as a labeled classification problem, where the classification model relates a feature vector summarizing the accelerometer signal in a window of time to the activity type or intensity in that window.  These data exhibit two key characteristics: (1) the activity classes in different time windows are not independent, and (2) the accelerometer features have moderately high dimension and follow complex distributions.  Through a simulation study and applications to three data sets, we demonstrate that the classification performance of a particular model and estimation strategy is related to how it addresses each of these aspects of the data.  Dynamic methods that account for temporal dependence in the activity class achieve better classification performance than static methods that do not.  Generative methods that explicitly model the distribution of the accelerometer signal features do not perform as well as methods that take a discriminative approach to establishing the relationship between the accelerometer signal and the activity class.  Specifically, we find that Conditional Random Fields (CRFs) consistently achieve better classification results than commonly employed methods for physical activity classification that ignore temporal dependence or attempt to model the distribution of the accelerometer features.
+\baselineskip=12pt
+\par\vfill\noindent
+\underline{\bf Key Words}:
+Accelerometers; Conditional Random Field; Hidden Markov Model.
+
+
+\clearpage\pagebreak\newpage
+\pagenumbering{arabic}
+\newlength{\gnat}
+\setlength{\gnat}{22pt}
+\baselineskip=\gnat
+
+\section{Introduction}
+\label{sec:Intro}
+
+The United States Department of Health and Human Services published the 2008 Physical Activity Guidelines (\citet{DHHS2008PAGuidelines}) recommending that adults accumulate at least 2 hours and 30 minutes of moderate intensity physical activity each week and that this activity should occur in continuous bouts of at least 10 minutes. These recommendations are based on a large literature review which found that increased physical activity leads to a reduction in all-cause mortality risk, weight-loss, prevention of certain types of cancer, and improvements in cardiorespiratory, metabolic, musculoskeletal, functional and mental health. In order to understand the dose response relationships between physical activity and aspects of health more precisely though and to assess the effects of interventions to increase physical activity, it is important to be able to accurately measure physical activity.
+
+One approach to the objective measurement of physical activity is through the use of an accelerometer worn by the individual.  This accelerometer records the acceleration that it experiences in each of three axes at a high frequency; measurements were recorded at frequencies of 80 to 90 Hz in the data sets we work with in this article. These acceleration recordings do not directly measure the quantities of interest.  Instead, statistical models must be used to infer descriptions of physical activity type from the accelerometer signal.
+
+A number of methods to infer physical activity type or intensity from accelerometer data have been developed, and the vast majority of these methods proceed by dividing time up into non-overlapping windows and extracting a vector of features summarizing the accelerometer signal in each window. A classification model is then developed to relate this feature vector to the activity type or intensity in each window. The methods are developed from training data where the accelerometer signals and the true activity types or intensities are observed. The models are then used for prediction when only the accelerometer signals are observed.
+
+The purpose of this article is to use both real data and simulations to investigate if there are general characteristics of the classification methods that associate with superior performance. We focus on two characteristics: (1) whether the method accounts for temporal dependence in the activity class, and (2) whether the method is based on a model for the covariates or not. We refer to methods that do not account for temporal dependence as static and others as dynamic. We refer to methods that are based on models for the covariates as generative and others as discriminative. In general, we find that a dynamic and discriminative approach leads to superior performance. While this is consistent with the dynamic nature of physical activity and the fact that summaries of the accelerometer signals tend to have complex and high dimensional distributions, a lot of effort in the literature has been devoted to static and generative models. The modeling approaches that we use are novel in the public health literature.
+
+% read in data for plots
+<<DataCharacteristsicsPlotReadData, cache = TRUE>>=
+PACwithDDM_location <- find.package("PACwithDDM")
+
+L_subject_numbers <- c("22")
+R_subject_numbers <- c("01", "04", "06", "08", "11", "19", "20", "21", "23", "24", "27", "32", "33", "34")
+subject_numbers <- c(L_subject_numbers, R_subject_numbers)
+
+subj <- "22"
+location <- "ankle"
+location_first_upper <- "Ankle"
+#location <- "hip"
+#location_first_upper <- "Hip"
+
+L_actigraph_file_path_termination <- paste0(substr(location_first_upper, 1, 1), "L80DORAW.csv")
+R_actigraph_file_path_termination <- paste0(substr(location_first_upper, 1, 1), "R80DORAW.csv")
+if(subj %in% L_subject_numbers) {
+	actigraph_file_name <- paste0("AG", subj, L_actigraph_file_path_termination)
+} else {
+	actigraph_file_name <- paste0("AG", subj, R_actigraph_file_path_termination)
+}
+actigraph_file_path <- file.path(PACwithDDM_location, "extdata", "Sasaki", "Free Living data", "Actigraph", location_first_upper, "csv", actigraph_file_name)
+    
+DO_file_name <- paste0("ACE", subj, "DO.txt")
+DO_file_path <- file.path(PACwithDDM_location, "extdata", "Sasaki", "Free Living data", "ACE DO data", DO_file_name)
+    
+DO_adjustment_file_name <- paste0("DO_adjustment_subj", subj, "_", "hip", ".txt")
+DO_adjustment_file_path <- file.path(PACwithDDM_location, "extdata", "Sasaki", "Free Living data", "rayDOadjustments", DO_adjustment_file_name)
+
+raw_processed_data <- suppressWarnings(Sasaki_combine_free_living_actigraph_and_DO_files(actigraph_file_path = actigraph_file_path, DO_file_path = DO_file_path, DO_adjustment_file_path = DO_adjustment_file_path, drop_private = TRUE))
+
+plot_data <- data.frame(reduced_vm = apply(as.matrix(raw_processed_data[, c("x", "y", "z")]), 1, function(row_dat) sqrt(sum(row_dat^2))))
+plot_data$category3 <- raw_processed_data$category3
+plot_data$category5 <- as.character(raw_processed_data$category5)
+new_levels <- levels(raw_processed_data$category5)[levels(raw_processed_data$category5) != "Recreational"]
+plot_data$category5[plot_data$category5 == "MovInter"] <- "Moving Intermittently"
+new_levels[new_levels == "MovInter"] <- "Moving Intermittently"
+plot_data$category5 <- factor(as.character(plot_data$category5), levels = c("Sedentary", "Standing", "Locomotion", "Moving Intermittently"))
+
+window_length <- 12.8
+sampling_freq <- 80
+processed_data <- suppressWarnings(Sasaki_preprocess_one_free_living_file(actigraph_file_path = actigraph_file_path, DO_file_path = DO_file_path, DO_adjustment_file_path = DO_adjustment_file_path, sampling_freq = sampling_freq, window_length = window_length, drop_private = TRUE))
+
+plot_data$reduced_cat <- as.character(rep(processed_data$y_category3, each = sampling_freq * window_length)[seq_along(plot_data$reduced_vm)])
+plot_data$reduced_cat[plot_data$reduced_cat == "MovInter"] <- "Moving Intermittently"
+plot_data$reduced_cat[plot_data$reduced_cat == "transition"] <- "Transition"
+plot_data$reduced_cat <- factor(plot_data$reduced_cat, levels = c("Sedentary/Standing", "Moving Intermittently", "Locomotion", "Transition"))
+
+opd <- plot_data
+plot_data <- plot_data[seq_len(80 * 60 * 60), ]
+@
+
+%The corresponding characteristics of the model and estimation strategy are \begin{inparaenum}[(1)] \item whether the model accounts for temporal dependence in the activity class, and \item whether a generative or discriminative approach is used. \end{inparaenum}  Generative approaches proceed by specifying a joint model for the activity class and features in each window; the model describes how the data were generated. In contrast, discriminative methods seek to directly optimize the performance of the final classifier, which discriminates between different classes based on the values of the observed features.  Often, but not always, this is done by specifying a conditional model for the activity type given the accelerometer features.  This eliminates the need to explicitly model the distribution of those features.
+
+%Our central arguments in this article are that \begin{inparaenum}[(1)]\item models that account for temporal dependence give a better representation of the data and therefore achieve better classification performance than models that do not account for temporal dependence, and \item discriminative methods are better equipped than generative methods to handle the moderately high dimension and complex distributions of the feature vectors, and therefore achieve better classification performance. \end{inparaenum}  Following these conclusions, we advocate that future research efforts in the area of physical activity classification with accelerometer data should focus on dynamic, discriminative models.
+
+%The rest of this article is organized as follows.  In Section \ref{sec:LitRev}, we review the existing literature on estimating physical activity type and energy expenditure type from accelerometer data.  In the following Sections we apply several classification methods representing static, dynamic, generative, and discriminative approaches to classification with simulated and real physical activity data sets.  We describe the classification methods we use in Section \ref{sec:Models}.  Then we present results from the simulation study in Section \ref{sec:SimulationStudy} and applications to real physical activity data in Section \ref{sec:Applications}.  We conclude with a discussion in Section \ref{sec:Discussion}.
+
+The rest of this article is organized as follows.  In Section \ref{sec:LitRev}, we briefly review the existing literature on estimating physical activity from accelerometer data. In Section \ref{sec:Models} we develop static, dynamic, generative, and discriminative approaches to classification, and we apply the methods to simulated and real physical activity data sets in Sections \ref{sec:SimulationStudy} and \ref{sec:Applications}. We conclude with a discussion in Section \ref{sec:Discussion}.
+
+\section{Literature Review}
+\label{sec:LitRev}
+
+In this Section we present some necessary scientific background and review relevant literature on estimation of physical activity from accelerometer data. In general, two aspects of physical activity are estimated from accelerometers: energy expenditure and what the person is doing. We discuss methods to estimate energy expenditure first.  An example of accelerometer data is displayed in Figure \ref{fig:dataCharacteristics}.
+
+\begin{figure}
+<<FirstDataPlot, fig.height = 3.5, fig.keep = "last", cache = FALSE>>=
+
+
+make_one_signal_classification_plot <- function(signal_var, class_var, data, sampling_freq, subsample_rate, panel_minutes, main_title, signal_var_label = toupper(signal_var), class_var_label,
+    class_var_palette_type, class_var_palette, font_size = 44, line_height = 2, panel_legend_relative_width = 8, plot_legend = TRUE, plot_classvar = TRUE, save_file, plot_width, plot_height) {
+  # subsample the data
+  subsampled_signal_var <- data[seq(from = 1, to = nrow(data), by = subsample_rate), signal_var]
+  subsampled_class_var <- data[seq(from = 1, to = nrow(data), by = subsample_rate), class_var]
+  
+  # number of subsampled data points in each panel and inds for subsampled observations in each panel
+  panel_length <- round(sampling_freq * 60 * panel_minutes / subsample_rate)
+  num_panels <- ceiling(length(subsampled_signal_var) / panel_length)
+  panel_inds <- rep(seq_len(num_panels), each = panel_length)[seq_along(subsampled_signal_var)]
+  panel_inds <- lapply(seq_len(num_panels), function(panel) which(panel_inds == panel))
+  
+  # update panel minutes to reflect actual value
+  panel_minutes <- panel_length * subsample_rate / (sampling_freq * 60)
+  
+  # get min_y and max_y -- same for all panels
+  temp <- pretty(subsampled_signal_var)
+  min_y <- temp[1]
+  max_y <- temp[length(temp)]
+  
+  # print plot title
+  for(title_line_ind in seq_along(main_title)) {
+    grid.text(main_title[title_line_ind], just = "center", gp = gpar(fontsize = 1.1 * font_size), vp = viewport(layout.pos.row = title_line_ind, layout.pos.col = 2))
+  }
+
+  # print X and Y axis labels
+  grid.text("Time (minutes)", just = "center", gp = gpar(fontsize = font_size), vp = viewport(layout.pos.row = length(main_title) + num_panels + 1, layout.pos.col = 2))
+  grid.text(signal_var_label, just = "center", rot = 90, gp = gpar(fontsize = font_size), vp = viewport(layout.pos.row = seq(from = length(main_title) + 1, length = num_panels), layout.pos.col = 1))
+
+
+  # print plot panels
+  for(panel in seq_len(num_panels)) {
+    class_polygons <- get_class_polygons(subsampled_class_var[panel_inds[[panel]]], min_y, max_y)
+    
+    temp_plot_df <- data.frame(x = seq_along(panel_inds[[panel]]), y = subsampled_signal_var[panel_inds[[panel]]])
+    
+    p <- ggplot()
+
+	if(plot_classvar) {
+      p <- p + geom_polygon(aes(x = x, y = y, fill = value, group = id), data = class_polygons)
+	}
+
+	p <- p +
+      geom_line(aes(x = x, y = y), size = 0.001, data = temp_plot_df) +
+	  xlab("") + ylab("")
+#      xlab("Time (minutes)") + ylab(toupper(signal_var))
+    
+	if(plot_classvar) {
+	    if(identical(class_var_palette_type, "manual")) {
+	      p <- p + scale_fill_manual(name = class_var_label, breaks = levels(data[, class_var]), drop = FALSE, values = class_var_palette, limits = levels(data[, class_var]))
+	    } else {
+	      p <- p + scale_fill_brewer(class_var_label, breaks = levels(data[, class_var]), drop = FALSE, type = class_var_palette_type, palette = class_var_palette)
+	    }
+	}
+    
+    p <- p + scale_x_continuous(limits = c(0, panel_length + 0.5), breaks = seq(from = 0, len = panel_minutes / 5 + 1, by = sampling_freq * 60 * 5 / subsample_rate),
+                                labels = seq(from = (panel - 1) * panel_minutes, len = panel_minutes / 5 + 1, by = 5)) +
+      scale_y_continuous(limits = c(min_y, max_y), breaks = seq(from = min_y, to = max_y, by = 2)) +
+      theme_bw() +
+      theme(legend.position = "none",
+        plot.margin = unit(c(0.1, 0.1, -1, -1), "lines"))
+    
+    print(p, vp = viewport(layout.pos.row = length(main_title) + panel, layout.pos.col = 2))
+  }
+}
+
+# data for legend -- same as for pairs plot
+plot_df <- data.frame(
+	vm_mean = unlist(lapply(SasakiFreeLivingHip, function(comp) comp$X[, "vm_mean"])),
+	phi_quantile_0.75 = unlist(lapply(SasakiFreeLivingHip, function(comp) comp$X[, "phi_quantile_0.75"])),
+	class = as.character(unlist(lapply(SasakiFreeLivingHip, function(comp) comp$y_category3))),
+	subj = factor(unlist(lapply(seq_along(SasakiFreeLivingHip), function(subj_ind) rep(subj_ind, length(SasakiFreeLivingHip[[subj_ind]]$y_category3))))),
+	stringsAsFactors = FALSE
+)
+
+plot_df$class[plot_df$class == "MovInter"] <- "Moving Intermittently"
+plot_df$class[plot_df$class == "transition"] <- "Transition"
+plot_df$class <- factor(plot_df$class, levels = c("Sedentary/Standing", "Moving Intermittently", "Locomotion", "Transition"))
+
+
+p <- ggplot(data.frame(x = 1:4, y = 1:4, class = c("Sedentary/Standing", "Moving Intermittently", "Locomotion", "Transition"))) +
+	geom_bar(aes(x = x, y = y, fill = class, shape = class), stat = "identity") +
+	scale_fill_manual(name = "Activity Type", breaks = levels(plot_df$class), drop = FALSE, values = color_palette4, limits = levels(plot_df$class)) +
+	theme_bw() +
+	theme(legend.text = element_text(size = 9))
+
+suppressWarnings(suppressMessages(print(p)))
+
+
+get_ggplot_legend_box_grob <- function (x)
+{
+    ## from print.ggplot
+    ggplot2:::set_last_plot(x)
+    data <- ggplot2:::ggplot_build(x)
+
+    ## from ggplot_gtable
+    plot <- data$plot
+    panel <- data$panel
+    data <- data$data
+    theme <- ggplot2:::plot_theme(plot)
+    geom_grobs <- Map(function(l, d) l$draw_geom(d, panel, plot$coordinates), 
+        plot$layers, data)
+    plot_table <- ggplot2:::facet_render(plot$facet, panel, plot$coordinates, 
+        theme, geom_grobs)
+    labels <- plot$coordinates$labels(list(x = ggplot2:::xlabel(panel, 
+        plot$labels), y = ggplot2:::ylabel(panel, plot$labels)))
+    xlabel <- ggplot2:::element_render(theme, "axis.title.x", labels$x, 
+        expand_y = TRUE)
+    ylabel <- ggplot2:::element_render(theme, "axis.title.y", labels$y, 
+        expand_x = TRUE)
+    find_panel <- function(table) {
+        layout <- table$layout
+        panels <- layout[grepl("^panel", layout$name), , drop = FALSE]
+        data.frame(t = min(panels$t), r = max(panels$r), b = max(panels$b), 
+            l = min(panels$l))
+    }
+    panel_dim <- find_panel(plot_table)
+    xlab_height <- grobHeight(xlabel)
+    plot_table <- gtable_add_rows(plot_table, xlab_height)
+    plot_table <- gtable_add_grob(plot_table, xlabel, name = "xlab", 
+        l = panel_dim$l, r = panel_dim$r, t = -1, clip = "off")
+    ylab_width <- grobWidth(ylabel)
+    plot_table <- gtable_add_cols(plot_table, ylab_width, pos = 0)
+    plot_table <- gtable_add_grob(plot_table, ylabel, name = "ylab", 
+        l = 1, b = panel_dim$b, t = panel_dim$t, clip = "off")
+    position <- theme$legend.position
+    if (length(position) == 2) {
+        position <- "manual"
+    }
+    legend_box <- if (position != "none") {
+        ggplot2:::build_guides(plot$scales, plot$layers, plot$mapping, 
+            position, theme, plot$guides, plot$labels)
+    }
+    else {
+        zeroGrob()
+    }
+
+        legend_width <- gtable_width(legend_box) + theme$legend.margin
+        legend_height <- gtable_height(legend_box) + theme$legend.margin
+        just <- valid.just(theme$legend.justification)
+        xjust <- just[1]
+        yjust <- just[2]
+        if (position == "manual") {
+            xpos <- theme$legend.position[1]
+            ypos <- theme$legend.position[2]
+            legend_box <- editGrob(legend_box, vp = viewport(x = xpos, 
+                y = ypos, just = c(xjust, yjust), height = legend_height, 
+                width = legend_width))
+        }
+        else {
+            legend_box <- editGrob(legend_box, vp = viewport(x = xjust, 
+                y = yjust, just = c(xjust, yjust)))
+        }
+
+    return(legend_box)
+}
+
+
+legend_grob <- get_ggplot_legend_box_grob(p)
+
+
+# grid layout for two plots + legend
+grid.newpage()
+pushViewport(viewport(layout = grid.layout(nrow = 7, ncol = 5, heights = unit(c(rep(1, 2), rep(1, 3), 1, 1), c(rep("lines", 2), rep("null", 3), "lines", "lines")), widths = unit(c(1, 2, 1, 1, 0.6), c("lines", "null", "lines", "lines", "null")))))
+
+
+# draw legend
+
+pushViewport(viewport(layout.pos.row = 3:5, layout.pos.col = 5))
+grid.draw(legend_grob)
+upViewport()
+
+
+
+# Subject 22 in the lab component of the study was the 9th subject to participate in the free living component of the study
+plot_main_title <- c("Acceleration Vector Magnitude vs. Time and Activity Type", "Subject 9")
+
+make_one_signal_classification_plot(signal_var = "reduced_vm", class_var = "reduced_cat", data = plot_data,
+#make_one_signal_classification_plot(signal_var = "reduced_vm", class_var = "category5", data = plot_data,
+	sampling_freq = 80, subsample_rate = 10, panel_minutes = 20, main_title = plot_main_title,
+	signal_var_label = "Vector Magnitude (g)", class_var_label = "Activity Type", class_var_palette_type = "manual", class_var_palette = color_palette4,
+#	signal_var_label = "Vector Magnitude (g)", class_var_label = "Activity Type", class_var_palette_type = "div", class_var_palette = "PuOr",
+	font_size = 10, line_height = 1.25, panel_legend_relative_width = 2.5, plot_legend = FALSE, plot_classvar = TRUE, save_file = "", plot_width = 8, plot_height = 6)
+@
+\caption{Plot of acceleration recordings from an accelerometer placed at the ankle for one subject in the free living data set from \citet{sasaki2016ActivityClassificationOlder}; we describe the data further in Section~\ref{sec:Applications}.  Time is on the horizontal axis and the vector magnitude of the accelerometer recordings at each point in time is on the vertical axis.  The background shade indicates the activity type label.}
+\label{fig:dataCharacteristics}
+\end{figure}
+
+The Metabolic Equivalent of Task (MET) is a body-size independent measure of energy expenditure. One MET is the energy used by an individual at rest, and the energy expenditure of other activities is expressed as multiples of this resting rate (\citet{ainsworth2011}). For interpretability, METs are often discretized into levels of energy expenditure (sedentary: $METs<1.5,$ light: $1.5 \le METs<3,$  moderate: $3 \le METs < 6$, and vigorous: $METs>6$).
+
+Simple linear regression is the most prevalent way to estimate METs from an accelerometer. This approach relates a univariate summary of the total acceleration magnitude in non-overlapping time intervals (referred to as \textit{counts} and often considered per minute window) to METs (e.g., \citet{freedson1998calibration}). While the relationship between counts and METs is approximately linear during locomotion, METs are not a mathematical function of counts when the wearer of the accelerometer does a variety of activities. For instance, activities with similar intensities may have quite different counts, and activities with different intensities may have similar counts (\citet{staudenmayer2009ANNforEEandAC}).
+
+These problems can be partially remedied by using a richer summary of the acceleration signal and a more flexible regression model for the relationship between the accelerometer signal and activity intensity (e.g. \citet{rothney2007ANNforEE} and \citet{staudenmayer2009ANNforEEandAC}). Another common option is to use separate models for different types of activity (\citet{crouter2006EE, lyden2014sojourn, bonomi2009EEEbyusingAC, albinali2010usingACforEE, lester2009EEE}). We note that these methods are all static in the sense that regression models are applied to different windows independently.
+
+At the expense of not estimating total energy expenditure, it is also possible to bypass the initial regression step and classify physical activity intensity directly.  If this strategy is used, the same modeling tools can be used to classify activity type (what the person is actually doing) or intensity. Many static and discriminative classification methods have been applied to these problems, including support vector machines (\citet{anderson2013changepointHMM, gyllensten2011evaluatelabalgsinreallife, mannini2013activityrecognition, ravi2005activityrecognition, zhang2012ACusingGENEA, zheng2013ACmultiscaleensemble}), classification trees (\citet{albinali2010usingACforEE, anderson2013changepointHMM, bao2004ACuserannotated, bonomi2009detection, bonomi2009EEEbyusingAC, gyllensten2011evaluatelabalgsinreallife, mathie2004classification, ravi2005activityrecognition, zhang2012ACusingGENEA}), artificial neural networks (\citet{anderson2013changepointHMM, devries2011evaluationofNNforAC, ermes2008detection, gyllensten2011evaluatelabalgsinreallife, staudenmayer2009ANNforEEandAC, zhang2012ACusingGENEA}), and nearest neighbors (\citet{bao2004ACuserannotated, foerster1999detectionofACvalidation, ravi2005activityrecognition}), among others.
+
+Previous articles have suggested that models that account for temporal dependence might have better classification accuracy than models that do not (e.g., \citet{gyllensten2011evaluatelabalgsinreallife, mannini2010machinelearningforAC, bao2004ACuserannotated}). To our knowledge no previous study has directly examined the impact of this characteristic of the model on classification performance with real physical activity data.
+
+Hidden Markov models (HMMs) are generative dynamic models that provide one way to model temporal dependence. A straightforward way to use HMMs for physical activity data is to represent the true activity class by the hidden state, which is modeled as changing over time according to a Markov process.  The observed acceleration features follow a distribution that depends on the state.  This setup was used by \citet{mannini2010machinelearningforAC}.  \citet{poberetal:ClassifyPA} use the same general idea but employ a HMM that assigns 3 hidden states to each activity class.
+
+The difficulty with this approach is that it requires us to estimate the distribution of the accelerometer features associated with each hidden state.  Applied studies and theoretical results have shown that classification performance of generative models such as HMMs suffers when the model is badly misspecified, and discriminative approaches may be preferred in these cases (e.g., \citet{NgJordanDiscriminativeVsGenerative, nadas1988modelrobusttrainingHMM, xue2008commentNgJordan}).
+
+A second approach to using HMMs is to first use a discriminative model that does not incorporate temporal dependence, such as a support vector machine or random forest, to obtain an initial classification, and then use a HMM to smooth those initial classifications over time.  Variations on this idea have been used by \citet{lester2005hybridHMMforPA}, \citet{anderson2013changepointHMM} and \citet{EllisPARecognitionHMMSmoothRF}.  \citet{mcshane2013learningwithTSDependence} developed a more formally justified variation on this theme in the context of classifying sleep type in mice with video recordings. Their work re-expresses the HMM in terms of the class membership probabilities that are obtained from a static non-parametric classification model.  This approach combines the benefits of using a discriminative approach for relating the feature vectors to the activity classes with the temporal dependence structure of the HMM.
+
+The Conditional Random Field (CRF) is another discriminative approach that can capture temporal dependence.  The CRF was originally proposed in the computer science literature by \citet{lafferty2001CRF} and has been applied to a variety of problems, including part-of-speech tagging (\citet{lafferty2001CRF}) and gene prediction (\citet{bernal2007CRFgenes}) among many others.  One previous study has applied CRFs to classification of physical activity with accelerometer data, although their specific classification task was fairly different from the tasks that are of interest to public health researchers (\citet{vinh2011semimarkovCRFforPArecognition}).  The CRF model uses a graphical structure to represent the conditional independence relationships among the activity classes at different times.  It can be shown that the model that results from conditioning on the observed features in the HMM is a special case of the CRF (\citet{lafferty2001CRF, sutton2011introductionCRF}).
+
+\section{Classification Methods}
+\label{sec:Models}
+
+First, we introduce notation. We denote the acceleration feature vector in window $t$ for subject $i$ by $\bX_{i, t} \in \mathbb{R}^D$, and the activity type or intensity by $Y_{i, t} \in \{1, \ldots, S\}$.  Here $S$ is the total number of activity type or intensity levels, which varies with the data set.  We let $N$ denote the total number of subjects and $T_i$ denote the number of windows for subject $i$.  In our applications in Section \ref{sec:Applications}, we use either $D=13$ or $D=77$ features depending on the data set.  All of these features are listed in Appendix \ref{sec:appendix:2}. Discussion of the advantages and disadvantages of specific features is outside the scope of this article.
+
+Our first classification method is a random forest (\textbf{RF}, \citet{breiman2001RF}).  This is a static discriminative method.  We use the implementation in the {\tt randomForest} package \citep{liaw2002randomForestPackage} for {\tt R} \citep{RCore} with the default options for number of trees, node size, and number of variables considered for each split.  For some of our applications to real data sets, we will present results from support vector machines (\textbf{SVM}) that were previously published in \citet{mannini2013activityrecognition}; this is also a static discriminative classification method.
+
+Our second method is a first-order \textbf{HMM} with one state for each observed activity type and a mixture of Gaussians for the observation distribution:
+\begin{eqnarray}
+P(Y_{i, 1} = s ; \bpi) & = & \pi_s, s \in \{1, \ldots, S\}, 0 \leq \pi_s \leq 1, \sum_{s=1}^S \pi_s = 1 \label{eqn:HMMInitialState} \\
+P(Y_{i, t} = s | Y_{i, t - 1} = r; Q) & = & q_{r, s} \mbox{, } r, s \in \{1, \ldots, S\}, \label{eqn:HMMTransitions} 0 \leq q_{r, s} \leq 1 \, \forall r, s, \sum_{s = 1}^S q_{r, s} = 1 \, \forall r \\
+f(\bx_{i, t} | Y_{i, t} = s ; \bmu_s, \bSigma_s) & = & \sum_{k = 1}^{K_s} w_{s, k} g(\bx_{i,t} ; \bmu_{s,k}, \Sigma_{s, k}), \label{eqn:HMMObsDist}   0 \leq w_{s, k} \leq 1, \sum_{k = 1}^{K_s} w_{s, k} = 1 \, \forall s. 
+\end{eqnarray}
+Here, $g(\cdot)$ is the pdf of the multivariate normal distribution.
+
+The \textbf{HMM} has parameters $\btheta = (\bpi, Q, \bw, \bmu, \bSigma)$, where $\bpi = (\pi_1, \ldots, \pi_S)$, $Q = [q_{r, s}]$, and $\bw$, $\bmu$, and $\bSigma$ contain the parameters for all mixture components.  We estimate $Q$ via maximum likelihood.  We estimate $\bpi_s$ as the observed proportion of the sample with $y_{i, t} = s$; this is not the maximum likelihood estimate, but use of this estimate is a standard procedure to reduce sampling variance of the estimates (e.g., \citet{mcshane2013learningwithTSDependence}).  For the observation distributions, we use {\tt R}'s {\tt mclust} package \citep{Fraley2012mclust} to estimate the mixture weights and the parameters of the Gaussian mixture components.  This package allows for a number of possible restrictions on the parameterizations of the Gaussian component covariance matrices.  It uses an EM algorithm to obtain local maximum likelihood estimates of the Gaussian component parameters, and BIC to select the covariance parameterization and number of components.  Before fitting the model, we apply the Yeo-Johnson transformation \citep{yeo2000powertransform} to each covariate to approximate normality. We use the implementation of this transformation that is available in the {\tt car} package \citep{Fox2011CAR} for {\tt R}. 
+
+%Our third classification method is the discriminative estimation procedure for HMMs described by \citet{mcshane2013learningwithTSDependence}.  This approach combines a static discriminative classifier with the temporal dependence structure of the HMM and can be viewed as adding temporal dependence structures to the random forest, allowing us to compare the static and dynamic approaches based on discriminative models.
+
+Our final classification method is a linear chain \textbf{CRF}.  The model is specified as follows:
+\begin{eqnarray*}
+pr( \bY _i = \by_i | \bX_i = \bx_i ; \btheta) & = & \frac{1}{Z(\bx_i ; \btheta)} \exp \left\{ \sum_{s = 1}^S \bI_{\{s\}}(y_{i, 1}) \zeta_s \right.  \\
+&  & + \sum_{t = 2}^{T_i} \sum_{r = 1}^S \sum_{s = 1}^S \bI_{\{r\}}(y_{i, t - 1}) \bI_{\{s\}}(y_{i, t}) \omega_{r, s}  \\
+&  & + \left. \sum_{t = 1}^{T_i} \sum_{s = 1}^S \left( \beta_{s, 0} + \sum_{d = 1}^D \beta_{s, d} x_{i, t, d} \right) \right\}.
+\end{eqnarray*}
+Here, $Z(\bx_i ; \btheta)$ is a normalizing factor ensuring that the distribution sums to $1$ and $\bI_A(x)$ is the indicator function, taking the value $1$ if $x \in A$ and $0$ otherwise.  More flexible CRF models can be formulated; we use this linear chain CRF specification because it is the model that arises if we condition on $\bX$ in the HMM given by Equations \ref{eqn:HMMInitialState} through \ref{eqn:HMMObsDist} if we fix the number of mixture components $K_s = 1.$  This allows us to compare the relative benefits of using the discriminative and generative approaches in models that account for temporal dependence.  In order to resolve problems with identifiability, we fix $\zeta_S = 0$, $\omega_{S, S} = 0$, and $\beta_{S, d'} = 0 \, \forall d' = 0, \ldots, D$.
+
+Our estimation algorithm for this model employs bagging and boosting.  In the bagging step we generate many different training data sets by drawing observation sequences with replacement from the full set of all observation sequences (note that this same technique is used in the estimation of random forests).  In the final model fit, the coefficient estimates $\zeta_s$, $\omega_{r, s}$, and $\beta_{s, d}$ are the average of the coefficient estimates obtained from separate model fits to each of these bagged data sets.  We use a boosting procedure to obtain these separate model fits.  The boosting step can be interpreted as a random block coordinate ascent algorithm converging to the maximum likelihood parameter estimates based on the given training data set, with early stopping used to reduce overfitting.  We use 10-fold cross-validation estimates of classification performance to select the stopping point for the boosting procedure.  The precise estimation algorithm is in Appendix \ref{sec:appendix:bbparalg}.  Similar estimation strategies for CRFs have been employed in the literature previously (e.g., \citet{smith2007diversityinLOPs, DietterichTrainingCRFviaTreeBoosting}).
+
+\section{Simulation Study}
+\label{sec:SimulationStudy}
+
+The objective of the simulation study we describe in this Section is to understand how the performance of the classification methods outlined in Section \ref{sec:Models} depends on the complexity of the distributions for the feature vectors derived from the accelerometer data in each window.  There are many other characteristics of classification problems that likely affect the performance of the methods under consideration, such as the sample size, the dimension of the observed feature vectors, the number of classes, the relative frequencies of each class, the frequency of mislabeled observations in the training data, and so on.  We focus on the complexity of the observation distributions because we believe they are the most useful in helping to explain differences in the performance of discriminative and generative classification methods when applied to real physical activity data.
+
+In order to study this, we generate data from one of two distributions, one where the simulated observations from each class follow a relatively simple distribution and a second where that distribution is more complex.  For each complexity level, we conduct $50$ simulations with training and test data sets generated with parameter values specific to that cell of the design.  Each training and test data set is generated independently, and consists of $N = 50$ sequences of length $T = 200$.  We fix the number of classes to $S = 3$ and the dimension of the observed feature vectors to $D = 50$.  
+
+The data $(\by_i, \bx_i) \in \{1, \ldots, S\}^T \times \mathbb{R}^{D \cdot T}$, $i = 1, \ldots, N$, are generated from a first-order HMM as follows:
+\begin{eqnarray*}
+p(Y_{i, 1} = s | \bpi) & = & \frac{1}{3}, \label{eqn:HMMInitDistsimstudy} \\
+p(Y_{i, t+1} = y_{i, t+1} | Y_{i, 1:t}  =  y_{i, 1:t}; Q) & = & p(Y_{i, t+1} = y_{i, t+1} | Y_{i, t} = y_{i, t}; Q) \\
+& = &  \frac{4}{5} \mbox{ if }y_{i, t} = y_{i, t+1} \mbox{ and }  \frac{1}{10} \mbox{ otherwise},  \\
+f(\bx_{i,t} | Y_{i,t} = s) & = & \sum_{m = 1}^{M_s} w_{s,m} f_{s, m}(\bx_{i,t} ; \btheta_{s,m}),  0 \leq w_{s, m} \leq 1 \, \forall m, \sum_{m = 1}^{M_s} w_{s, m} = 1.
+\end{eqnarray*}
+The form of the distribution $f_{s, m}(\bx_{i,t} ; \btheta_{s,m})$ depends on the complexity level of the emission distributions.  In the cases with simple emission distributions, we use a mixture of Gaussian distributions.  Thus, in those cases the data are generated from the \textbf{HMM} model that is used as one of our classification methods.  In the cases with more complex emission distributions, each mixture component is a location family of a gamma distribution where the location, shape, and scale parameters are all obtained as a linear combination of the draws for the lower dimensions.%  We give the exact specifications for these distributions and the parameter values we used in Appendix \ref{sec:appendix:simstudy}.
+
+We summarize performance of the classification methods in each trial of the simulation study with three statistics: the proportion of time windows classified correctly, the macro $F_1$ score \citep{sokolova2009classifiermeasures}, and the MSE of the class probability estimates relative to the indicators of the true class labels.  For the sake of brevity, we have only included plots of the proportion correct here. The qualitative story is similar when we consider the macro $F_1$ score or MSE.
+
+Figure~\ref{fig:simStudyResultsBoxplotsp} summarizes the results of the simulation study.  In the cases with simple observation distributions, when the \textbf{HMM} model is the true data generating model, that method has the best performance.  However, in the cases with complex observation distributions, where the generative \textbf{HMM} model is misspecified, it is outperformed by the \textbf{CRF} method.  The static \textbf{RF} method, which does not account for temporal dependence, is consistently outperformed by the dynamic \textbf{HMM} and \textbf{CRF} models.
+
+\begin{figure}
+<<simStudyResultsBoxplotsp, cache = FALSE, fig.height = 5>>=
+origsimStudyResults <- simStudyResults
+#simStudyResults <- simStudyResults[simStudyResults$fit_method %in% c("Gaussian-mixt-HMM", "BB-Par-CRF", "RF", "Bayes-Rule"), ]
+simStudyResults <- simStudyResults[simStudyResults$fit_method %in% c("Gaussian-mixt-HMM", "BB-Par-CRF", "RF"), ]
+
+fit_method_levels <- levels(simStudyResults$fit_method)
+fit_method_levels[fit_method_levels == "Gaussian-mixt-HMM"] <- "HMM"
+fit_method_levels[fit_method_levels == "BB-Par-CRF"] <- "CRF"
+fit_method_levels[fit_method_levels == "Bayes-Rule"] <- "Bayes Rule"
+simStudyResults$fit_method <- as.character(simStudyResults$fit_method)
+simStudyResults$fit_method[simStudyResults$fit_method == "Gaussian-mixt-HMM"] <- "HMM"
+simStudyResults$fit_method[simStudyResults$fit_method == "BB-Par-CRF"] <- "CRF"
+simStudyResults$fit_method[simStudyResults$fit_method == "Bayes-Rule"] <- "Bayes Rule"
+simStudyResults$fit_method <- factor(simStudyResults$fit_method, levels = fit_method_levels)
+
+names(simStudyResults)[names(simStudyResults) == "obs_dist_normal"] <- "obs_dist_complex"
+levels(simStudyResults$obs_dist_complex) <- c("Complex", "Simple")
+simStudyResults$obs_dist_complex_pretty <- simStudyResults$obs_dist_complex
+levels(simStudyResults$obs_dist_complex_pretty) <- c("Complex Emission Distribution", "Simple Emission Distribution")
+
+levels(simStudyResults$bayes_error_rate_high) <- c("Low", "High")
+simStudyResults$bayes_error_rate_high_pretty <- simStudyResults$bayes_error_rate_high
+levels(simStudyResults$bayes_error_rate_high_pretty) <- c("Low Bayes Error", "High Bayes Error")
+
+#p <- ggplot(simStudyResults, aes(x = fit_method, y = prop_correct)) +
+#	geom_point(position = position_jitter(w = 0.2)) +
+#	geom_boxplot(fill = "white", outlier.colour = NA) +
+#	facet_grid(obs_dist_complex_pretty ~ bayes_error_rate_high_pretty) +
+#	scale_y_continuous(lim = c(0, 1), breaks = c(0, 0.2, 0.4, 0.6, 0.8, 1.0)) +
+#	xlab("Classification Method") +
+#	ylab("Proportion Correct") +
+#	theme_bw() +
+#	theme(axis.text.x = element_text(angle = 70, hjust = 1), text = element_text(size = 18))
+
+p <- ggplot(simStudyResults[simStudyResults$bayes_error_rate_high == "Low", ], aes(x = fit_method, y = prop_correct)) +
+	geom_point(position = position_jitter(w = 0.2)) +
+	geom_boxplot(fill = "white", outlier.colour = NA) +
+	facet_grid(~ obs_dist_complex_pretty) +
+#	scale_y_continuous(lim = c(0, 1), breaks = c(0, 0.2, 0.4, 0.6, 0.8, 1.0), expand = c(0, 0)) +
+	scale_y_continuous(lim = c(0.7, 1), expand = c(0, 0)) +
+	xlab("Classification Method") +
+	ylab("Proportion Correct") +
+	theme_bw() +
+	theme(axis.text.x = element_text(angle = 70, hjust = 1), text = element_text(size = 18))
+	
+grid.newpage()
+pushViewport(viewport(layout = grid.layout(nrow = 2, ncol = 1, heights = unit(c(2 * 1.4, 1), c("lines", "null")))))
+
+suppressWarnings(print(p, vp = viewport(layout.pos.row = 2, layout.pos.col = 1)))
+
+grid.text("Proportion Correct by Classification Method and\nComplexity Level of the Feature Emission Distributions", gp = gpar(fontsize = 16), vp = viewport(layout.pos.row = 1, layout.pos.col = 1))
+@
+\caption{Box plots showing the proportion of time points classified correctly in the simulation study.  A separate box plot is displayed for each combination of the complexity level of the feature emission distributions and the classification method.  Each point corresponds to a combination of distribution complexity, classification method, and simulation index.}
+\label{fig:simStudyResultsBoxplotsp}
+\end{figure}
+
+%\begin{figure}
+%<<simStudyResultsBoxplotsf1, cache = FALSE, fig.height = 4>>=
+%p <- ggplot(simStudyResults, aes(x = fit_method, y = F1_score_macro)) +
+%	geom_point(position = position_jitter(w = 0.2)) +
+%	geom_boxplot(fill = "white", outlier.colour = NA) +
+%	facet_grid(obs_dist_complex_pretty ~ bayes_error_rate_high_pretty) +
+%	scale_y_continuous(lim = c(-0.1, 1.1), breaks = c(0, 0.2, 0.4, 0.6, 0.8, 1.0)) +
+%	xlab("Classification Method") +
+%	ylab(expression(paste("Macro ", F[1], " Score"))) +
+%	theme_bw() +
+%	theme(axis.text.x = element_text(angle = 70, hjust = 1))
+%	
+%grid.newpage()
+%
+%pushViewport(viewport(layout = grid.layout(nrow = 4, ncol = 1, heights = unit(c(rep(1.25, 3), 1), c(rep("lines", 3), "null")))))
+%
+%suppressWarnings(print(p, vp = viewport(layout.pos.row = 4, layout.pos.col = 1)))
+%
+%grid.text(expression(paste("Macro ", F[1], " Score by Complexity Level of the Feature Emission Distributions")), gp = gpar(fontsize = 1.2 * 12), vp = viewport(layout.pos.row = 1, layout.pos.col = 1))
+%grid.text("Bayes Error Rate, and Classification Method", gp = gpar(fontsize = 1.2 * 12), vp = viewport(layout.pos.row = 2, layout.pos.col = 1))
+%grid.text("Simulation Study", gp = gpar(fontsize = 1.2 * 12), vp = viewport(layout.pos.row = 3, layout.pos.col = 1))
+%@
+%
+%\caption{Box plots showing the macro $F_1$ score combining precision and recall across all three classes in the simulation study.  A separate box plot is displayed for each combination of the complexity level of the feature emission distributions, the Bayes error rate, and the classification method.  Each point corresponds to a combination of distribution complexity, Bayes error rate, classification method, and simulation index.}
+%\label{fig:simStudyResultsBoxplotsf1}
+%\end{figure}
+%
+%\begin{figure}
+%<<simStudyResultsBoxplotsMSE, cache = FALSE, fig.height = 4>>=
+%p <- ggplot(simStudyResults, aes(x = fit_method, y = mse_pred)) +
+%	geom_point(position = position_jitter(w = 0.2)) +
+%	geom_boxplot(fill = "white", outlier.colour = NA) +
+%	xlab("Classification Method") +
+%	ylab("Mean Squared Error") +
+%	facet_grid(obs_dist_complex_pretty ~ bayes_error_rate_high_pretty) +
+%	theme_bw() +
+%	theme(axis.text.x = element_text(angle = 70, hjust = 1))
+%	
+%grid.newpage()
+%pushViewport(viewport(layout = grid.layout(nrow = 2, ncol = 1, heights = unit(c(3 * 1.25, 1), c("lines", "null")))))
+%
+%#	suppressWarnings(print(p))
+%	suppressWarnings(print(p, vp = viewport(layout.pos.row = 2, layout.pos.col = 1)))
+%
+%grid.text("Mean Squared Error of Estimated Class Probabilities\nby Location and Classification Method\nSimulation Study", gp = gpar(fontsize = 1.2 * 12), vp = viewport(layout.pos.row = 1, layout.pos.col = 1))
+%@
+%
+%\caption{Box plots showing the mean squared error of the estimated class membership probabilities at each time point relative to the true class memberships in the simulation study.  A separate box plot is displayed for each combination of the complexity level of the feature emission distributions, the Bayes error rate, and the classification method.  Each point corresponds to a combination of distribution complexity, Bayes error rate, classification method, and simulation index.}
+%\label{fig:simStudyResultsBoxplotsMSE}
+%\end{figure}
+
+%These results confirm the general story we discussed in the literature review regarding the relative performance of generative and discriminative methods.  The relative performance of these methods depends on how accurate the joint model for the class labels and the features specified by the generative model is.  When the joint model is accurate, the generative approach is superior; when the joint model is badly misspecified, the discriminative approach is superior.  Of course, the picture is a little more complex than this, and our simulation study has not examined all of the relevant factors.  Misspecification is not an all or nothing property of a model; instead, a model may be misspecified to varying extents.  For instance, it is likely that if the feature emission distributions exhibited only minor departures from a mixture of Gaussians with a small number of components, the \textbf{Gaussian-mixt-HMM} would still offer superior performance relative to the discriminative approaches.  With flexible models such as a mixture of Gaussians, another important factor is likely the size of the sample relative to the dimension of the feature vector.  If the sample size were large in relation to the dimension, the \textbf{Gaussian-mixt-HMM} might not suffer as much in settings where the feature emission distributions are complex, since the method would be able to add more Gaussian components to the mixture and thereby model the emission distributions more accurately.  We believe that the settings in our simulation study with complex emission distributions are a reasonably accurate representation of the conditions that we face with real physical activity data, and indicate that methods that condition on the accelerometer features may have an advantage over methods that attempt to model them when using data sets of the size that are currently available.
+
+\section{Applications}
+\label{sec:Applications}
+
+In this Section, we present classification results for three physical activity data sets.  We describe the data collection procedures in Subsection \ref{subsec:Applications:DataCollection} and present the classification results in Subsection \ref{subsec:Applications:Results}.
+
+\subsection{Data Collection}
+\label{subsec:Applications:DataCollection}
+
+Our three data sets were collected in two studies.  The first was described and analyzed in \citet{mannini2013activityrecognition} and the last two in \citet{sasaki2016ActivityClassificationOlder}. Table \ref{tbl:Table1ManniniSasaki} contains descriptive statistics for the study participants.
+
+\begin{table*}
+\centering
+\begin{tabular} {r l l l}
+\toprule
+ & \multicolumn{1}{b{3.2cm}}{\parbox[b]{3.2cm}{Data Set 1}} & \multicolumn{1}{b{3.2cm}}{\parbox[b]{3.2cm}{Data Set 2}} & \multicolumn{1}{b{4.35cm}}{\parbox[b]{4.35cm}{Data Set 3}} \\
+ & \multicolumn{1}{b{3.2cm}}{\parbox[b]{3.2cm}{Mannini Lab}} & \multicolumn{1}{b{3.2cm}}{\parbox[b]{3.2cm}{Sasaki Lab}} & \multicolumn{1}{b{4.35cm}}{\parbox[b]{4.35cm}{Sasaki Free Living}} \\
+\midrule
+N & 33 & 35 & 15 \\
+Male/Female & 11/22 & 14/21 & 6/9 \\
+Age Range & 18 to 75 & 65 to 80 & 65 to 78 \\
+Height (mean $\pm$ sd) & 168.5 $\pm$ 9.3 cm & 168.6 $\pm$ 9.8 cm & 169.8 $\pm$ 9.8 cm \\
+Weight (mean $\pm$ sd) & 70.0 $\pm$ 15.6 kg & 76.4 $\pm$ 14.2 kg & 74.5 $\pm$ 11.4 kg \\
+\bottomrule
+\end{tabular}
+\caption{Descriptive statistics for study participants.  The first data set was previously described in \protect\cite{mannini2013activityrecognition} and the last two in \citet{sasaki2016ActivityClassificationOlder}.}
+\label{tbl:Table1ManniniSasaki}
+\end{table*}
+
+For the first data set, each participant performed a subset of 26 activities in the laboratory.  These activities were designed to be generally representative of activities people engage in in real life, but the order and duration of activities were determined by the researchers.  While subjects performed these activities, they wore Wocket accelerometers on their ankle, thigh, wrist, and hip. The accelerometers recorded acceleration in each of 3 orthogonal axes at a frequency of 90 Hz. In this work, we analyze only the data from the ankle and the wrist; these are the data that were previously discussed in \citet{mannini2013activityrecognition}. In that paper, researchers developed static discriminative statistical learning models (specifically, SVM) to classify activities into one of several groups of similar activity types and to classify intensity. Classification performance was evaluated relative to the actual activity type by cross-validation. We compare their results to ours in Section \ref{subsec:Applications:Results}.
+
+Our second and third data sets were collected using healthy elderly subjects and used the ActiGraph GT3X+ accelerometer  (3 axes at a frequency of 80 Hz) to measure acceleration. The second dataset was was collected using a laboratory protocol that was similar to the one used in \citet{mannini2013activityrecognition}, and the third dataset was conducted under free-living conditions. Staff followed the subjects as they went about their normal activities and recorded what was done and when in terms of the type of activity performed and a categorical assessment of the intensity of the activity (Sedentary, Light, Moderate, or Vigorous). Similar to \citet{mannini2013activityrecognition}, \citet{sasaki2016ActivityClassificationOlder} used static discriminative statistical learning methods (SVM) to classify activity and type, and evaluated performance using leave-one-subject-out cross-validation. %Comparisons to our methods are in Section \ref{subsec:Applications:Results}.
+
+For all datasets, we summarized the accelerometer signals using non-overlapping 12.8 second windows as was done in \citet{mannini2013activityrecognition}.  For each window, we computed a vector of statistics to summarize time and frequency domain features of the accelerometers signals.  For the data from \citet{mannini2013activityrecognition}, we used the vector of 13 features in the recommended feature set from that work.  For the data sets from \citet{sasaki2016ActivityClassificationOlder}, we used a vector of 77 features; these statistics are similar to those used by \citet{mannini2013activityrecognition}, \citet{sasaki2016ActivityClassificationOlder} and others.  We list the features used in Appendix \ref{sec:appendix:2}.
+
+In addition to summarizing acceleration in each window, we also assigned an activity type label  and intensity for each window. For the first data set, we use the same system for classifying activity type as \citet{mannini2013activityrecognition}, with four categories: sedentary, locomotion, cycling, and non-locomotion movement.  For the other two data sets, we used four categories: sedentary, locomotion, non-locomotion movement, and transition.  The transition category occurred when a window included more than one activity.  Activity intensity also has four categories: Sedentary ($\leq 1.5$ METs), Light ($> 1.5$ and $< 3$ METs), Moderate ($\geq 3$ and $< 6$ METs), and Vigorous ($\geq 6$ METs). Intensity was measured using indirect calorimetry (e.g.  \citep{kozey2010errorsMETs35}) in the second data set. For the other datasets, we assigned an intensity category to each time point using the MET classification of activities in the Compendium of Physical Activity (\citet{ainsworth2011}). The prevalence of different levels of activity type and intensity for each dataset are in Table \ref{tbl:Prevalence}.
+
+\begin{table*}
+\centering
+\begin{tabular} {c c c c c c c}
+\toprule
+Response & \multicolumn{1}{c}{\parbox[b]{2.2cm}{\centering Data Set}} & \multicolumn{5}{c}{\parbox[b]{8cm}{\centering Activity Class and Prevalence}} \\
+\midrule
+Intensity &  & Sedentary & Light & Moderate & Vigorous & Transition \\
+\cmidrule(r){3-7}
+ & \multicolumn{1}{c}{\parbox[b]{2.05cm}{\baselineskip=12pt
+ \centering Mannini\\Lab, Ankle}} & 35.2\% & 4.8\% & 55.5\% & 4.5\% & - \\
+ & \multicolumn{1}{c}{\parbox[b]{2.05cm}{\baselineskip=12pt
+ \centering Mannini\\Lab, Wrist}} & 35.5\% & 4.8\% & 55.3\% & 4.4\% & - \\
+ & \multicolumn{1}{c}{\parbox[b]{2.05cm}{\baselineskip=12pt
+ \centering Sasaki\\Lab}} & 18.4\% & 44.2\% & 35.7\% & 0\% & 1.7 \% \\
+ & \multicolumn{1}{c}{\parbox[b]{2.05cm}{\baselineskip=12pt
+ \centering Sasaki\\Free Living}} & 24.7\% & 41.5\% & 23.6\% & 0.8\% & 9.4\% \\
+\midrule
+Type &  & Sedentary & Ambulation & Cycling & Other & \\
+\cmidrule(r){3-7}
+ & \multicolumn{1}{c}{\parbox[b]{2.15cm}{\baselineskip=12pt
+ \centering Mannini\\Lab, Ankle}} & 39.9\% & 33.2\% & 13.8\% & 13.1\% &  \\
+ & \multicolumn{1}{c}{\parbox[b]{2.15cm}{\baselineskip=12pt
+ \centering Mannini\\Lab, Wrist}} & 40.3\% & 32.9\% & 14.0\% & 12.9\% &   \\
+\midrule
+Type &  & \multicolumn{1}{c}{\parbox[b]{2cm}{\baselineskip=12pt
+ \centering Sedentary/\\Standing}} & \multicolumn{1}{c}{\parbox[b]{2.2cm}{\baselineskip=12pt
+ \centering Moving\\Intermittently}} & Locomotion & Transition & \\
+\cmidrule(r){3-7}
+ & \multicolumn{1}{c}{\parbox[b]{2.15cm}{\baselineskip=12pt
+ \centering Sasaki\\Lab}} & 17.2\% & 53.7\% & 27.4\% & 1.7\% & \\
+ & \multicolumn{1}{c}{\parbox[b]{2.15cm}{\baselineskip=12pt
+ \centering Sasaki\\Free Living}} & 45.5\% & 26.4\% & 18.9\% & 9.3\% & \\
+\bottomrule
+\end{tabular}
+\caption{Prevalence of activity intensity and type labels in the data from \citet{mannini2013activityrecognition} and \citet{sasaki2016ActivityClassificationOlder}.  In the data from \citet{mannini2013activityrecognition}, prevalence varies slightly across accelerometer locations since different time windows were dropped in the cleaning process they used to handle missing data due to wireless transmission problems with the accelerometers.}
+\label{tbl:Prevalence}
+\end{table*}
+
+
+\subsection{Results}
+\label{subsec:Applications:Results}
+
+Figure \ref{fig:applicationResultsPlot} summarizes the results from activity type and intensity classification tasks. The left panel shows average percent correct for activity type classifications and the right are for activity intensity classifications. The reported percentages are averaged over the three studies and the two accelerometer locations per study. All were estimated using leave-one-subject-out cross-validation. For activity type, the ``static'' method comes from the published results in \citet{mannini2013activityrecognition} and a static random forest applied to the data from \citet{sasaki2016ActivityClassificationOlder}.  We do not use the published results from \citet{sasaki2016ActivityClassificationOlder} because that paper preprocessed the data in a way that would make the results difficult to compare to our models.  \citet{mannini2013activityrecognition} used support vector machines (\textbf{SVM}).  Results were nearly identical when we estimated ourselves using a static \textbf{RF}. Since \citet{mannini2013activityrecognition} and \citet{sasaki2016ActivityClassificationOlder} did not estimate activity intensity, the ``static'' method for intensity is a \textbf{RF} as described in Section \ref{sec:Models}. We found that the \textbf{RF} had similar performance to \textbf{SVM}, but the \textbf{RF} was less sensitive to tuning parameter choices.
+
+\begin{figure}
+<<fitResultsLMEModel, cache = FALSE, echo = FALSE>>=
+suppressMessages(suppressWarnings(library("nlme")))
+suppressMessages(suppressWarnings(library("multcomp")))
+# fit mixed effects model with a separate mean for each combination of
+# data set, accelerometer location, response variable and fit method, random effect for subject, and
+# variance specific to combination of subject, data set, response variable, and location
+
+
+combined_results_by_subject <-
+  rbind.fill(
+    ManniniTypeResults %>%
+      mutate(data_set = "Mannini",
+        response = "Type"),
+    ManniniIntensityResults %>%
+      mutate(data_set = "Mannini",
+        response = "Intensity"),
+    SasakiLabTypeResults %>%
+      mutate(data_set = "Sasaki Lab",
+        response = "Type"),
+    SasakiLabIntensityResults %>%
+      mutate(data_set = "Sasaki Lab",
+        response = "Intensity"),
+    SasakiFreeLivingTypeResults %>%
+      mutate(data_set = "Sasaki Free Living",
+        response = "Type"),
+    SasakiFreeLivingIntensityResults %>%
+      mutate(data_set = "Sasaki Free Living",
+        response = "Intensity")
+  ) %>%
+  filter(subject != "Aggregated") %>%
+  mutate(
+    response = factor(response),
+    data_set = factor(data_set),
+    subject = factor(as.integer(as.character(subject))),
+    unique_subject = paste(data_set, as.character(subject), sep = "_"),
+    unique_subject_response = paste(data_set, as.character(subject), sep = "_")
+  )
+
+# results_fit <- lme(fixed = prop_correct ~ location * fit_method * data_set * response,
+# 	random = ~ 1 | subject,
+# #	weights = varIdent(form = ~ 1 | subject * location),
+# #	weights = varIdent(form = ~ 1 | subject * location * data_set * response),
+# 	weights = varIdent(form = ~ 1 | location * fit_method * data_set * response),
+# 	data = combined_results_by_subject,
+# 	control = lmeControl(maxIter = 500, msMaxIter = 500, niterEM = 250, msMaxEval = 2000))
+
+results_fit <- lme(fixed = prop_correct ~ location * fit_method * data_set * response,
+ 	random = ~ 1 | unique_subject,
+#	weights = varIdent(form = ~ 1 | subject * location),
+#	weights = varIdent(form = ~ 1 | subject * location * data_set * response),
+ 	weights = varIdent(form = ~ 1 | location * fit_method * data_set * response),
+ 	data = combined_results_by_subject,
+ 	control = lmeControl(maxIter = 500, msMaxIter = 500, niterEM = 250, msMaxEval = 2000))
+
+# results_fit_3 <- lme(fixed = prop_correct ~ location * fit_method * data_set * response,
+# 	random = ~ 1 | subject/location/fit_method/data_set/response,
+# #	weights = varIdent(form = ~ 1 | subject * location),
+# #	weights = varIdent(form = ~ 1 | subject * location * data_set * response),
+# 	weights = varIdent(form = ~ 1 | location * fit_method * data_set * response),
+# 	data = combined_results_by_subject,
+# 	control = lmeControl(maxIter = 500, msMaxIter = 500, niterEM = 250, msMaxEval = 2000))
+
+
+# # assemble a data frame with residuals and corresponding quantiles for each case
+# ManniniTypeResultsWithResids <- ManniniTypeResults
+# ManniniTypeResultsWithResids$fitted_prop_correct <- fitted(mefit_Mannini_locationmethodint_hetero_subjlocation)
+# ManniniTypeResultsWithResids$residual_prop_correct <- resid(mefit_Mannini_locationmethodint_hetero_subjlocation)
+# ManniniTypeResultsWithResids$standard_residual_prop_correct <- resid(mefit_Mannini_locationmethodint_hetero_subjlocation, type = "pearson")
+# ManniniTypeResultsWithResids$theoretical_quantile_prop_correct <- NA
+# for(loc in levels(ManniniTypeResultsWithResids$location)) {
+# 	ManniniTypeResultsWithResids$theoretical_quantile_prop_correct[ManniniTypeResultsWithResids$location == loc] <-
+# 		qqnorm(ManniniTypeResultsWithResids$residual_prop_correct[ManniniTypeResultsWithResids$location == loc], plot.it = FALSE)$x
+# }
+
+# assemble a data frame with estimates of relevant linear combinations of parameters and CIs.
+# We want estimates for:
+#  - the mean for each combination of location and classification method
+#  - the difference in means between each pair of methods within location
+#  - the difference in means between each location within each method
+unique_fit_methods <- as.character(unique(combined_results_by_subject$fit_method))
+unique_locations <- as.character(unique(combined_results_by_subject$location))
+unique_responses <- as.character(unique(combined_results_by_subject$response))
+unique_data_sets <- as.character(unique(combined_results_by_subject$data_set))
+
+num_fit_methods <- length(unique_fit_methods)
+num_locations <- length(unique_locations)
+num_responses <- length(unique_responses)
+num_data_sets <- length(unique_data_sets)
+
+unique_fit_method_descriptors <- paste0("fit_method", sort(unique_fit_methods))
+unique_location_descriptors <- paste0("location", sort(unique_locations))
+unique_response_descriptors <- paste0("response", sort(unique_responses))
+unique_data_set_descriptors <- paste0("data_set", sort(unique_data_sets))
+
+lc_df <- expand.grid(
+  fit_method = unique_fit_methods,
+  location = unique_locations,
+  response = unique_responses,
+  data_set = unique_data_sets,
+  stringsAsFactors = FALSE)
+
+lc_df$fit_method_descriptor <- paste0("fit_method", lc_df$fit_method)
+lc_df$location_descriptor <- paste0("location", lc_df$location)
+lc_df$response_descriptor <- paste0("response", lc_df$response)
+lc_df$data_set_descriptor <- paste0("data_set", lc_df$data_set)
+lc_df$name <- apply(as.matrix(lc_df[, 1:4]), 1, paste, collapse = "-")
+
+num_leading_cols <- ncol(lc_df)
+coef_cols <- seq(
+  from = num_leading_cols + 1,
+  length = num_fit_methods * num_locations * num_responses * num_data_sets
+)
+
+# corresponding indicator vector for each coefficient
+coef_names <- names(fixef(results_fit))
+unique_coef_name_component_descriptors <- unique(unlist(strsplit(coef_names, ":")))
+intercept_fit_method <- unique_fit_method_descriptors[
+  !(unique_fit_method_descriptors %in% unique_coef_name_component_descriptors)]
+intercept_location <- unique_location_descriptors[
+  !(unique_location_descriptors %in% unique_coef_name_component_descriptors)]
+intercept_response <- unique_response_descriptors[
+  !(unique_response_descriptors %in% unique_coef_name_component_descriptors)]
+intercept_data_set <- unique_data_set_descriptors[
+  !(unique_data_set_descriptors %in% unique_coef_name_component_descriptors)]
+for(coef_ind in seq(from = 1, to = length(coef_names))) {
+	split_name <- unlist(strsplit(coef_names[[coef_ind]], ":"))
+	if(!any(split_name %in% unique_fit_method_descriptors[unique_fit_method_descriptors != intercept_fit_method])) {
+		split_name <- c(split_name, unique_fit_method_descriptors)
+	}
+	if(!any(split_name %in% unique_location_descriptors[unique_location_descriptors != intercept_location])) {
+		split_name <- c(split_name, unique_location_descriptors)
+	}
+	if(!any(split_name %in% unique_response_descriptors[unique_response_descriptors != intercept_response])) {
+		split_name <- c(split_name, unique_response_descriptors)
+	}
+	if(!any(split_name %in% unique_data_set_descriptors[unique_data_set_descriptors != intercept_data_set])) {
+		split_name <- c(split_name, unique_data_set_descriptors)
+	}
+	
+	lc_df[[paste0("coef", coef_ind)]] <- 0
+	lc_df[[paste0("coef", coef_ind)]][
+	  lc_df$fit_method_descriptor %in% split_name &
+		lc_df$location_descriptor %in% split_name &
+	  lc_df$response_descriptor %in% split_name &
+	  lc_df$data_set_descriptor %in% split_name] <- 1
+}
+
+# contrasts averaging estimated means across
+# all three data sets and both accelerometer locations,
+# within response and fit method.
+rowind <- nrow(lc_df) # index of new row to add to lc_df
+for(fit_method in unique_fit_methods) {
+  for(response in unique_responses) {
+  	rowind <- rowind + 1
+	  
+  	rows_to_average <- which(lc_df$fit_method == fit_method & lc_df$response == response)
+  	lc_df[rowind, ] <- rep(NA, ncol(lc_df))
+	  
+  	lc_df$name[rowind] <- paste0(fit_method, "-", response)
+  	lc_df$fit_method[rowind] <- fit_method
+  	lc_df$response[rowind] <- response
+  	lc_df[rowind, coef_cols] <- apply(lc_df[rows_to_average, coef_cols], 2, mean)
+  }
+}
+ 
+lc_df$name <- factor(lc_df$name, levels = lc_df$name)
+
+K_mat <- as.matrix(lc_df[, coef_cols])
+
+# get point estimates
+lc_df$pt_est <- K_mat %*% matrix(fixef(results_fit))
+
+# get familywise CIs
+fam_CI_obj <- glht(results_fit, linfct = K_mat)
+temp <- confint(fam_CI_obj)$confint
+lc_df$fam_CI_lb <- temp[, 2]
+lc_df$fam_CI_ub <- temp[, 3]
+
+# get individual CIs
+lc_df$ind_CI_lb <- NA
+lc_df$ind_CI_ub <- NA
+for(rowind in seq_len(nrow(lc_df))) {
+	ind_CI_obj <- glht(results_fit, linfct = K_mat[rowind, , drop = FALSE])
+	temp <- confint(ind_CI_obj)$confint
+	lc_df$ind_CI_lb[rowind] <- temp[, 2]
+	lc_df$ind_CI_ub[rowind] <- temp[, 3]
+}
+
+
+summary_figure_df <-
+  lc_df[61:70, c("fit_method", "response", "pt_est", "fam_CI_lb", "fam_CI_ub", "ind_CI_lb", "ind_CI_ub")] %>%
+  mutate(fit_method = factor(fit_method, levels = c("CRF", "HMM", "MLR", "FMM", "RF")))
+
+ggplot(summary_figure_df) +
+  geom_point(aes(x = fit_method, y = pt_est)) +
+  geom_errorbar(aes(x = fit_method, ymin = fam_CI_lb, ymax = fam_CI_ub)) +
+  facet_wrap(~ response, nrow = 1) +
+  xlab("Classification Model") +
+  ylab("Proportion Correct") +
+ 	scale_y_continuous(limits = c(0.5, 1), expand = c(0, 0)) +
+  theme_bw()
+@
+\caption{Results from activity type and intensity classification tasks in data from \citet{mannini2013activityrecognition} and \citet{sasaki2016ActivityClassificationOlder}, averaged across the three data sets and two accelerometer locations.  The 95\% confidence intervals are from a linear mixed effects model.}
+\end{figure}
+
+%' \begin{figure}
+%' <<ResultsSummaryPlot, cache = FALSE, fig.height = 5>>=
+%' reduced_ManniniIntensityResults <- ManniniIntensityResults[
+%' 	ManniniIntensityResults$fit_method %in% c("BB-Par-CRF", "Par-CRF", "RF", "Gaussian-mixt-HMM") &
+%' #	ManniniIntensityResults$fit_method %in% c("Par-CRF", "Gaussian-mixt-HMM") &
+%' 	ManniniIntensityResults$case == "1stage/notruth",]
+%' reduced_SasakiLabIntensityResults <- SasakiLabIntensityResults[
+%' 	SasakiLabIntensityResults$location %in% c("Ankle", "Wrist") &
+%' 	SasakiLabIntensityResults$fit_method %in% c("BB-Par-CRF", "Par-CRF", "RF", "Gaussian-mixt-HMM") &
+%' #	SasakiLabIntensityResults$fit_method %in% c("Par-CRF", "Gaussian-mixt-HMM") &
+%' 	SasakiLabIntensityResults$case=="1stage/notruth",]
+%' reduced_SasakiFreeLivingIntensityResults <- SasakiFreeLivingIntensityResults[
+%' 	SasakiFreeLivingIntensityResults$location %in% c("Ankle", "Wrist") &
+%' 	SasakiFreeLivingIntensityResults$fit_method %in% c("BB-Par-CRF", "Par-CRF", "RF", "Gaussian-mixt-HMM") &
+%' #	SasakiFreeLivingIntensityResults$fit_method %in% c("Par-CRF", "Gaussian-mixt-HMM") &
+%' 	SasakiFreeLivingIntensityResults$case=="1stage/notruth",]
+%' 
+%' reduced_ManniniTypeResults <- ManniniTypeResults[
+%' #	ManniniTypeResults$fit_method == "RF" |
+%' #	(ManniniTypeResults$fit_method %in% c("Par-CRF", "RF", "Gaussian-mixt-HMM") &
+%' 	(ManniniTypeResults$fit_method %in% c("BB-Par-CRF", "Par-CRF", "Gaussian-mixt-HMM") &
+%' 		ManniniTypeResults$trans_mat_parameterization=="Full"),]
+%' reduced_SasakiLabTypeResults <- SasakiLabTypeResults[
+%' 	SasakiLabTypeResults$class_var == "y_category3" &
+%' 	SasakiLabTypeResults$location %in% c("Ankle", "Wrist") &
+%' #	(SasakiLabTypeResults$fit_method == "RF" |
+%' 	(
+%' #		(SasakiLabTypeResults$fit_method %in% c("Par-CRF", "RF", "Gaussian-mixt-HMM") &
+%' 		(SasakiLabTypeResults$fit_method %in% c("BB-Par-CRF", "Par-CRF", "Gaussian-mixt-HMM") &
+%' 			SasakiLabTypeResults$trans_mat_parameterization=="Full")),]
+%' reduced_SasakiFreeLivingTypeResults <- SasakiFreeLivingTypeResults[
+%' 	SasakiFreeLivingTypeResults$class_var == "y_category3" &
+%' 	SasakiFreeLivingTypeResults$location %in% c("Ankle", "Wrist") &
+%' #	(SasakiFreeLivingTypeResults$fit_method == "RF" |
+%' 	(
+%' #		(SasakiFreeLivingTypeResults$fit_method %in% c("Par-CRF", "RF", "Gaussian-mixt-HMM") &
+%' 		(SasakiFreeLivingTypeResults$fit_method %in% c("BB-Par-CRF", "Par-CRF", "Gaussian-mixt-HMM") &
+%' 			SasakiFreeLivingTypeResults$trans_mat_parameterization=="Full")),]
+%' 
+%' 
+%' temp1 <- tapply(reduced_ManniniIntensityResults$prop_correct,
+%' 	reduced_ManniniIntensityResults[, c("fit_method", "location")],
+%' 	mean)
+%' temp2 <- tapply(reduced_SasakiLabIntensityResults$prop_correct,
+%' 	reduced_SasakiLabIntensityResults[, c("fit_method", "location")],
+%' 	mean)
+%' temp3 <- tapply(reduced_SasakiFreeLivingIntensityResults$prop_correct,
+%' 	reduced_SasakiFreeLivingIntensityResults[, c("fit_method", "location")],
+%' 	mean)
+%' 
+%' 
+%' M1 <- tapply(reduced_ManniniTypeResults$prop_correct,
+%' 	reduced_ManniniTypeResults[, c("fit_method", "location")],
+%' 	mean)
+%' SL1 <- tapply(reduced_SasakiLabTypeResults$prop_correct,
+%' 	reduced_SasakiLabTypeResults[, c("fit_method", "location")],
+%' 	mean)
+%' SF1 <- tapply(reduced_SasakiFreeLivingTypeResults$prop_correct,
+%' 	reduced_SasakiFreeLivingTypeResults[, c("fit_method", "location")],
+%' 	mean)
+%' 
+%' 
+%' inten.means <- apply(
+%' rbind(c(temp1["BB-Par-CRF","Ankle"],temp1["Gaussian-mixt-HMM","Ankle"],temp1["RF","Ankle"]),
+%' c(temp2["BB-Par-CRF","Ankle"],temp2["Gaussian-mixt-HMM","Ankle"],temp2["RF","Ankle"]),
+%' c(temp3["BB-Par-CRF","Ankle"],temp3["Gaussian-mixt-HMM","Ankle"],temp3["RF","Ankle"]),
+%' c(temp1["BB-Par-CRF","Wrist"],temp1["Gaussian-mixt-HMM","Wrist"],temp1["RF","Wrist"]),
+%' c(temp2["BB-Par-CRF","Wrist"],temp2["Gaussian-mixt-HMM","Wrist"],temp2["RF","Wrist"]),
+%' c(temp3["BB-Par-CRF","Wrist"],temp3["Gaussian-mixt-HMM","Wrist"],temp3["RF","Wrist"])),2,mean)
+%' 
+%' 
+%' type.means <- apply(
+%' rbind(c(M1["BB-Par-CRF","Ankle"],M1["Gaussian-mixt-HMM","Ankle"],.957),
+%' c(SL1["BB-Par-CRF","Ankle"],SL1["Gaussian-mixt-HMM","Ankle"],.937),
+%' c(SF1["BB-Par-CRF","Ankle"],SF1["Gaussian-mixt-HMM","Ankle"],.666),
+%' c(M1["BB-Par-CRF","Wrist"],M1["Gaussian-mixt-HMM","Wrist"],.866),
+%' c(SL1["BB-Par-CRF","Wrist"],SL1["Gaussian-mixt-HMM","Wrist"],.932),
+%' c(SF1["BB-Par-CRF","Wrist"],SF1["Gaussian-mixt-HMM","Wrist"],.634)),2,mean)
+%' 
+%' 
+%' 
+%' type_means_df <- data.frame(
+%' 	class_var = rep("Activity Type", 3),
+%' 	fit_method = c("Dynamic\nDiscriminative\n(CRF)", "Dynamic\nGenerative\n(HMM)", "Static\n(SVM/RF)"),
+%' 	means = type.means
+%' )
+%' 
+%' intensity_means_df <- data.frame(
+%' 	class_var = rep("Activity Intensity", 3),
+%' 	fit_method = c("Dynamic\nDiscriminative\n(CRF)", "Dynamic\nGenerative\n(HMM)", "Static\n(RF)"),
+%' 	means = inten.means
+%' )
+%' 
+%' combined_means_df <- data.frame(
+%' 	class_var = rep(c("Activity Intensity", "Activity Type"), each = 3),
+%' 	fit_method = c("Dynamic Discriminative (CRF)", "Dynamic Generative (HMM)", "Static (SVM)", "Dynamic Discriminative (CRF)", "Dynamic Generative (HMM)", "Static (RF)"),
+%' 	means = c(inten.means, type.means)
+%' )
+%' 
+%' grid.newpage()
+%' #pushViewport(viewport(layout = grid.layout(nrow = 2, ncol = 2, heights = unit(c(1, 1), c("lines", "null")), widths = unit(c(1, 1), c("null", "null")))))
+%' pushViewport(viewport(layout = grid.layout(nrow = 1, ncol = 2, heights = unit(c(1), c("null")), widths = unit(c(1, 1), c("null", "null")))))
+%' 
+%' p1 <- ggplot() +
+%' 	geom_point(aes(x = fit_method, y = means), data = type_means_df) +
+%' #	ylim(c(0.7, 0.835)) +
+%' #	ylim(c(0.7, 1)) +
+%' 	scale_y_continuous(limits = c(0.7, 1), expand = c(0, 0)) +
+%' 	xlab("\nMethod") +
+%' 	ylab("Proportion Correct") +
+%' 	ggtitle("Activity Type") +
+%' 	theme_bw()# +
+%' #	theme(axis.text.x  = element_text(angle = 45, vjust = 1, hjust = 1))
+%' 
+%' p2 <- ggplot() +
+%' 	geom_point(aes(x = fit_method, y = means), data = intensity_means_df) +
+%' #	ylim(c(0.7, 0.835)) +
+%' #	ylim(c(0.7, 1)) +
+%' 	scale_y_continuous(limits = c(0.7, 1), expand = c(0, 0)) +
+%' 	xlab("\nMethod") +
+%' 	ylab("Proportion Correct") +
+%' 	ggtitle("Activity Intensity") +
+%' 	theme_bw()# +
+%' #	theme(axis.text.x  = element_text(angle = 45, vjust = 1, hjust = 1))
+%' 
+%' 	
+%' suppressWarnings(print(p1, vp = viewport(layout.pos.row = 1, layout.pos.col = 1)))
+%' suppressWarnings(print(p2, vp = viewport(layout.pos.row = 1, layout.pos.col = 2)))
+%' 
+%' 
+%' 
+%' 
+%' #inten.means <- apply(
+%' #rbind(c(temp1["Par-CRF","Ankle"],temp1["Gaussian-mixt-HMM","Ankle"],temp1["RF","Ankle"]),
+%' #c(temp2["Par-CRF","Ankle"],temp2["Gaussian-mixt-HMM","Ankle"],temp2["RF","Ankle"]),
+%' #c(temp3["Par-CRF","Ankle"],temp3["Gaussian-mixt-HMM","Ankle"],temp3["RF","Ankle"]),
+%' #c(temp1["Par-CRF","Wrist"],temp1["Gaussian-mixt-HMM","Wrist"],temp1["RF","Wrist"]),
+%' #c(temp2["Par-CRF","Wrist"],temp2["Gaussian-mixt-HMM","Wrist"],temp2["RF","Wrist"]),
+%' #c(temp3["Par-CRF","Wrist"],temp3["Gaussian-mixt-HMM","Wrist"],temp3["RF","Wrist"])),2,mean)
+%' #
+%' #
+%' #type.means <- apply(
+%' #rbind(c(M1["Par-CRF","Ankle"],M1["Gaussian-mixt-HMM","Ankle"],.957),
+%' #c(SL1["Par-CRF","Ankle"],SL1["Gaussian-mixt-HMM","Ankle"],.90),
+%' #c(SF1["Par-CRF","Ankle"],SF1["Gaussian-mixt-HMM","Ankle"],.69),
+%' #c(M1["Par-CRF","Wrist"],M1["Gaussian-mixt-HMM","Wrist"],.866),
+%' #c(SL1["Par-CRF","Wrist"],SL1["Gaussian-mixt-HMM","Wrist"],.96),
+%' #c(SF1["Par-CRF","Wrist"],SF1["Gaussian-mixt-HMM","Wrist"],.58)),2,mean)
+%' #
+%' #
+%' #
+%' #type_means_df <- data.frame(
+%' #	class_var = rep("Activity Type", 3),
+%' #	fit_method = c("Dynamic\nDiscriminative\n(CRF)", "Dynamic\nGenerative\n(HMM)", "Static\n(SVM)"),
+%' #	means = type.means
+%' #)
+%' #
+%' #intensity_means_df <- data.frame(
+%' #	class_var = rep("Activity Intensity", 3),
+%' #	fit_method = c("Dynamic\nDiscriminative\n(CRF)", "Dynamic\nGenerative\n(HMM)", "Static\n(RF)"),
+%' #	means = inten.means
+%' #)
+%' #
+%' #combined_means_df <- data.frame(
+%' #	class_var = rep(c("Activity Intensity", "Activity Type"), each = 3),
+%' #	fit_method = c("Dynamic Discriminative (CRF)", "Dynamic Generative (HMM)", "Static (SVM)", #"Dynamic Discriminative (CRF)", "Dynamic Generative (HMM)", "Static (RF)"),
+%' #	means = c(inten.means, type.means)
+%' #)
+%' #
+%' #grid.newpage()
+%' ##pushViewport(viewport(layout = grid.layout(nrow = 2, ncol = 2, heights = unit(c(1, 1), c("lines", #"null")), widths = unit(c(1, 1), c("null", "null")))))
+%' #pushViewport(viewport(layout = grid.layout(nrow = 1, ncol = 2, heights = unit(c(1), c("null")), #widths = unit(c(1, 1), c("null", "null")))))
+%' #
+%' #p1 <- ggplot() +
+%' #	geom_point(aes(x = fit_method, y = means), data = type_means_df) +
+%' ##	ylim(c(0.7, 0.835)) +
+%' ##	ylim(c(0.7, 1)) +
+%' #	scale_y_continuous(limits = c(0.7, 1)) +
+%' #	xlab("\nMethod") +
+%' #	ylab("Proportion Correct") +
+%' #	ggtitle("Activity Type") +
+%' #	theme_bw()# +
+%' ##	theme(axis.text.x  = element_text(angle = 45, vjust = 1, hjust = 1))
+%' #
+%' #p2 <- ggplot() +
+%' #	geom_point(aes(x = fit_method, y = means), data = intensity_means_df) +
+%' ##	ylim(c(0.7, 0.835)) +
+%' ##	ylim(c(0.7, 1)) +
+%' #	scale_y_continuous(limits = c(0.7, 1)) +
+%' #	xlab("\nMethod") +
+%' #	ylab("Proportion Correct") +
+%' #	ggtitle("Activity Intensity") +
+%' #	theme_bw()# +
+%' ##	theme(axis.text.x  = element_text(angle = 45, vjust = 1, hjust = 1))
+%' 
+%' 	
+%' #suppressWarnings(print(p1, vp = viewport(layout.pos.row = 1, layout.pos.col = 1)))
+%' #suppressWarnings(print(p2, vp = viewport(layout.pos.row = 1, layout.pos.col = 2)))
+%' 
+%' 
+%' #par(mfrow=c(1,2),cex.axis=.75)
+%' #plot(1:3,type.means,axes=F,xlim=c(0.8,3.2),main="Activity Type",xlab="Method",ylab="% Correct",type="n")
+%' #axis(1,at=1:3,labels=c("Dynamic \n Discriminitive (CRF)","Dynamic \n Generative (HMM)","Static (SVD)"))
+%' #axis(2)
+%' #points(c(1,2,3),type.means,pch=16,cex=1.25)
+%' 
+%' #plot(1:3,inten.means,axes=F,xlim=c(0.8,3.2),main="Activity Intensity",xlab="Method",ylab="% Correct",type="n")
+%' #axis(1,at=1:3,labels=c("Dynamic \n Discriminitive (CRF)","Dynamic \n Generative (HMM)","Static (RF)"))
+%' #axis(2)
+%' #points(c(1,2,3),inten.means,pch=16,cex=1.25)
+%' @
+%' \caption{Results from activity type and intensity classification tasks in data from \citet{mannini2013activityrecognition} and \citet{sasaki2016ActivityClassificationOlder}.}
+%' \label{fig:applicationResultsPlot}
+%' \end{figure}
+
+The figure indicates that the discriminative dynamic model (\textbf{CRF}) improves over the static approach, and the generative dynamic model (\textbf{HMM}) performs worse than the static model or than the discriminative dynamic model.  A mixed model approach to assessing significance found that differences in the proportion correct as small as 1\% were statistically significant \citet{ray2015thesis}.  While the average differences between these approach are relatively small, table \ref{tbl:detailedResults} contains the average percent correct for each model, dataset, and location. For individual instances, the differences between the methods can be larger. Using a different summary of classification performance such as the $F_1$ score did not change these conclusions.
+
+% \begin{table*}
+% \centering
+% \begin{tabular} {c c c c c c}
+% \toprule
+% Response & Location & Data Set & \multicolumn{1}{c}{\parbox[b]{2.5cm}{\baselineskip=12pt \centering Dynamic\\Discriminative}} & \multicolumn{1}{c}{\parbox[b]{2.5cm}{\baselineskip=12pt \centering Dynamic\\Generative}} & Static \\
+% \midrule
+% Type & Ankle & Mannini Lab & \textbf{0.990} & 0.982 & 0.954 \\
+% Type & Ankle & Sasaki Lab & \textbf{0.982} & 0.956 & 0.937 \\
+% Type & Ankle & Sasaki Free Living & \textbf{0.724} & 0.649 & 0.666 \\
+% Type & Wrist & Mannini Lab & \textbf{0.894} & 0.893 & 0.866 \\
+% Type & Wrist & Sasaki Lab & \textbf{0.965} & 0.938 & 0.932 \\
+% Type & Wrist & Sasaki Free Living & \textbf{0.635} & 0.557 & 0.634 \\
+% Intensity & Ankle & Mannini Lab & \textbf{0.891} & 0.804 & 0.874 \\
+% Intensity & Ankle & Sasaki Lab & \textbf{0.774} & 0.758 & 0.746 \\
+% Intensity & Ankle & Sasaki Free Living & \textbf{0.733} & 0.623 & 0.651 \\
+% Intensity & Wrist & Mannini Lab & \textbf{0.867} & 0.843 & 0.845 \\
+% Intensity & Wrist & Sasaki Lab & 0.719 & \textbf{0.744} & 0.738 \\
+% Intensity & Wrist & Sasaki Free Living & \textbf{0.632} & 0.505 & 0.631 \\
+% \bottomrule
+% \end{tabular}
+% \caption{Results from activity type and intensity classification tasks in data from \cite{mannini2013activityrecognition} and \cite{sasaki2016ActivityClassificationOlder} by response variable, accelerometer location and data set.}
+% \label{tbl:detailedResults}
+% \end{table*}
+
+\begin{table*}
+\centering
+\begin{tabular} {c c c c c c c c}
+\toprule
+Response & Location & Data Set & CRF & HMM & MLR & FMM & RF \\
+\midrule
+<<ApplicationResultsTable, echo = FALSE, results = "asis">>=
+results_table <- lc_df %>%
+  dplyr::select(response, location, fit_method, data_set, pt_est) %>%
+  dplyr::filter(!is.na(location)) %>%
+  spread(fit_method, pt_est)
+
+results_table <- results_table[, c("response", "location", "data_set", "CRF", "HMM", "MLR", "FMM", "RF")]
+for(i in seq_len(nrow(results_table))) {
+  for(j in seq_len(ncol(results_table))) {
+    if(j <= 3) {
+      cat(results_table[i, j])
+      cat(" & ")
+    } else {
+      if(results_table[i, j] == max(results_table[i, 4:8])) {
+        cat("\\textbf{")
+        cat(sprintf("%.3f", round(results_table[i, j], 3)))
+        cat("}")
+      } else {
+        cat(sprintf("%.3f", round(results_table[i, j], 3)))
+      }
+      
+      if(j < 8) {
+        cat(" & ")
+      } else {
+        cat(" \\\\\n")
+      }
+    }
+  }
+}
+@
+\bottomrule
+\end{tabular}
+\caption{Estimated mean proportion correct for the activity type and intensity classification tasks in data from \cite{mannini2013activityrecognition} and \cite{sasaki2016ActivityClassificationOlder} by response variable, accelerometer location and data set.}
+\label{tbl:detailedResults}
+\end{table*}
+
+
+
+%\subsection{Data Preprocessing}
+%\label{subsec:Applications:Preprocessing}
+%
+%We performed three major data preprocessing tasks before applying the classification methods: \begin{inparaenum}[(1)] \item data cleaning, \item feature extraction, and \item assignment of class labels for each window. \end{inparaenum}  The procedures used in preprocessing the first data set were described in detail in \cite{mannini2013activityrecognition}; we describe them briefly here for completeness.
+%
+%A challenge with physical activity data is that the recorded transition times between different activity categories are often inaccurate.  This may be caused by misalignment and drift in the synchronization of the clocks used in the accelerometers and in the direct observation logging device, or the fact that it takes some time for the direct observers to register that a subject has changed their activity type and record that change in the logging software.
+%
+%In order to address this, \cite{mannini2013activityrecognition} discarded 12.8 seconds before and after each recorded transition between different activity types.  They also used recordings from the accelerometer placed at the ankle to detect times that were mislabeled as ambulation: if the vector magnitude of the acclerometer signal had a standard deviation of less than 0.1g in any 2 second window, they discarded that time.
+%
+%For the other two data sets, we adjusted the direct observation log times by visually aligning the transition times with the acceleration vector magnitude obtained from the ankle accelerometer.  The recorded transition times in the laboratory data were very accurate, and required only minimal adjustments.  In the free living data, most of our changes to the recorded transition times were between about 0 and 7 seconds.  However, we did make a few larger adjustments to the transition times in the free living data, up to about 40 seconds.  These adjustments corrected many problems in the direct observation labels, but we believe that there are still some inaccuracies in the activity type labels in the free living data.  Although we adjusted the times of existing transitions that were recorded in the direct observation logs, we did not introduce any new transitions.  We did not observe any appreciable differences in the clocks between the different accelerometers; separate time adjustments for the specific accelerometer locations were not required.
+%
+%\cite{mannini2013activityrecognition} also experienced data loss during wireless transmission of the acceleration signal from the accelerometers.  If more than 20\% of the samples in a given window of 12.8 seconds were missing, that time window was discarded and a new window began after the missing data.  Any remaining missing acceleration values were filled in with linear interpolation.
+%
+%The second two data sets contain several time periods where the activity type and intensity were not recorded.  In the laboratory component of the study, this occurs during the time periods between the prescribed activities.  In the free living component of the study subjects were able to request private time.  We have opted to drop these unlabeled time segments.  Development of methods for partially labeled data would be interesting, but is beyond the scope of our work.
+%
+%The second major task in preprocessing the data was extraction of the feature vector from the accelerometer recordings in each time window.  Following \cite{mannini2013activityrecognition} and \cite{zhang2012ACusingGENEA}, we use non-overlapping windows of length 12.8 seconds.  This choice is likely not optimal in terms of classification performance, but it is computationally convenient and these studies found that it led to good classification results.
+%
+%\cite{mannini2013activityrecognition} considered several different feature sets, and selected one set of 13 features consisting of time and frequency domain summaries of the vector magnitude of the accelerometer signal which they felt achieved an optimal balance between the time required to compute the features and the resulting classification performance.  In our work with that data set, we use that feature set in order to facilitate comparisons between the effectiveness of our methods and the support vector machine they employed as a classifier.  In our applications to the data from the elderly, we use an expanded set of 77 time and frequency domain features based on the three individual axes of acceleration recordings and the vector magnitude, polar angle, and azimuth angle in a representation of the signal in spherical coordinates.  Our choices of features are similar to those used in previous studies such as \cite{mannini2013activityrecognition}.  A full listing of the features we used is given in the supplementary materials.
+%
+%\lboxit{To do: Full listings of the features we used are given in the supplementary materials.}
+%
+%The final preprocessing step is assignment of the activity class label for each window.  We classify physical activity according to both activity type and intensity level.  For activity type, we make use of reduced sets of activity type categories formed by merging the finer categories recorded in the direct observation logs.  For the first data set, we use the same system as \cite{mannini2013activityrecognition}, with four categories: Sedentary, Ambulation, Cycling, and Other.  For the other two data sets, we considered two different groupings of activities with either 3 or 5 categories, which varied slightly between the laboratory and free living settings.  In the laboratory setting with 5 categories, the categories were as follows: Sedentary, Standing, Locomotion, Moving Intermittently, and Recreational.  The system with 3 categories was formed by merging the Standing category with the Sedentary category and the Recreational category with the Moving Intermittently category.  For the free living setting with 5 categories, the categories were as follows: Sedentary, Standing, Locomotion, Moving Intermittently, and Exercise.  The classification system with 3 categories was formed by merging the Standing category with the Sedentary category and the Exercise category with the Moving Intermittently category.  The supplementary materials include a complete description of which finer activity categories were merged to form these coarser categories.
+%
+%Only the free living data from the elderly contain direct annotations of a categorical intensity level for each subject's activity over time.  The laboratory data from the elderly contain recordings of the subjects' breath-by-breath oxygen consumption from an Oxycon portable respiratory gas exchange system.  We processed these data to obtain the subjects' steady state energy expenditure during minutes 3 - 5 of each activity in units of METs.  In calculating METs, we used a denominator of $3.5 \text{ ml } \text{O}_2 \cdot \text{kg}^{-1} \cdot \text{min}^{-1}$ for the reference metabolic rate in the resting state.  Use of this population average value can be criticized, particularly with a pool of elderly subjects as we have in this study \citep{kozey2010errorsMETs35}.  However, we were missing resting metabolic rate measurements for two of the subjects.  We opted to use a consistent measure that was available for all of our subjects.  In general, it takes a few minutes after beginning an activity for oxygen consumption to reach a steady state.  For data gathered in the laboratory where the intensity of each activity remained fairly constant throughout the activity, it is appropriate to use the steady state oxygen consumption to represent the intensity of the activity throughout the entire duration of the activity.  After computing energy expenditure in METs, we assigned an intensity category to each time point using the standard categories and MET cutoffs \citep{ainsworth2011}: Sedentary ($\leq 1.5$ METs), Light ($> 1.5$ and $< 3$ METs), Moderate ($\geq 3$ and $< 6$ METs), and Vigorous ($\geq 6$ METs).
+%
+%The data from \cite{mannini2013activityrecognition} do not contain any direct information about intensity.  However, they do contain a detailed system of physical activity type categorization, breaking activity type down into 26 different classes.  We combined this detailed information about activity type with the population-average MET values associated with each activity category that are available in the Compendium of Physical Activities \citep{ainsworth2011} to obtain approximate intensity levels.  We then converted these continuous values to categorical intensity levels using the set of MET cutoffs described above.
+%
+%In order to handle transitions between different activity types that occur within a single time window, we introduced a new Transition category, which we assigned to windows that contained more than one labeled activity type in the reduced classification system.  As we mentioned above, \cite{mannini2013activityrecognition} discarded 12.8 seconds of data before and after each transition between different activity types, so this problem does not arise in those data.
+
+%\subsection{Results}
+%\label{subsec:Applications:Results}
+%
+%Figure \ref{fig:MedianResultsLinePlotp} combines the results from all classification tasks in one plot, plotting the median proportion correct across all subjects for each classification method and task.
+%
+%
+%
+%\begin{figure*}
+%<<MedianResultsLinePlotp, fig.height = 8>>=
+%origManniniTypeResults <- ManniniTypeResults
+%ManniniTypeResults <- ManniniTypeResults[(ManniniTypeResults$fit_method == "RF" | ManniniTypeResults$fit_method == "SVM" | ManniniTypeResults$trans_mat_parameterization == "Full"), ]
+%ManniniTypeResults <- ManniniTypeResults[ManniniTypeResults$fit_method %in% c("RF", "BB-Par-CRF", "Gaussian-mixt-HMM", "RF-HMM"), ]
+%
+%origManniniIntensityResults <- ManniniIntensityResults
+%ManniniIntensityResults <- ManniniIntensityResults[ManniniIntensityResults$fit_method %in% c("RF", "BB-Par-CRF", "Gaussian-mixt-HMM", "RF-HMM") & ManniniIntensityResults$case == "1stage/notruth", ]
+%
+%ManniniTypeResults$problem <- "Type Classification, 4 Classes"
+%ManniniIntensityResults$problem <- "Intensity Classification"
+%
+%ManniniCombinedResults <- rbind.fill(ManniniTypeResults, ManniniIntensityResults)
+%ManniniCombinedResults$problem <- factor(ManniniCombinedResults$problem)
+%
+%
+%origSasakiLabTypeResults <- SasakiLabTypeResults
+%SasakiLabTypeResults <- SasakiLabTypeResults[(SasakiLabTypeResults$fit_method == "RF" | SasakiLabTypeResults$fit_method == "SVM" | SasakiLabTypeResults$trans_mat_parameterization == "Full"), ]
+%SasakiLabTypeResults <- SasakiLabTypeResults[SasakiLabTypeResults$fit_method %in% c("RF", "BB-Par-CRF", "Gaussian-mixt-HMM", "RF-HMM"), ]
+%
+%SasakiLabTypeResults$num_class_vars <- "4 Classes"
+%SasakiLabTypeResults$num_class_vars[SasakiLabTypeResults$class_var == "y_category5"] <- "6 Classes"
+%
+%SasakiLabTypeResults$problem <- paste0("Type Classification, ", SasakiLabTypeResults$num_class_vars)
+%
+%origSasakiLabIntensityResults <- SasakiLabIntensityResults
+%SasakiLabIntensityResults <- SasakiLabIntensityResults[SasakiLabIntensityResults$fit_method %in% c("RF", "BB-Par-CRF", "Gaussian-mixt-HMM", "RF-HMM") & SasakiLabIntensityResults$case == "1stage/notruth", ]
+%
+%SasakiLabIntensityResults$problem <- "Intensity Classification"
+%
+%SasakiLabCombinedResults <- rbind.fill(SasakiLabTypeResults, SasakiLabIntensityResults)
+%SasakiLabCombinedResults$problem <- factor(SasakiLabCombinedResults$problem)
+%	
+%
+%origSasakiFreeLivingTypeResults <- SasakiFreeLivingTypeResults
+%SasakiFreeLivingTypeResults <- SasakiFreeLivingTypeResults[(SasakiFreeLivingTypeResults$fit_method == "RF" | SasakiFreeLivingTypeResults$fit_method == "SVM" | SasakiFreeLivingTypeResults$trans_mat_parameterization == "Full"), ]
+%SasakiFreeLivingTypeResults <- SasakiFreeLivingTypeResults[SasakiFreeLivingTypeResults$fit_method %in% c("RF", "BB-Par-CRF", "Gaussian-mixt-HMM", "RF-HMM"), ]
+%
+%SasakiFreeLivingTypeResults$num_class_vars <- "4 Classes"
+%SasakiFreeLivingTypeResults$num_class_vars[SasakiFreeLivingTypeResults$class_var == "y_category5"] <- "6 Classes"
+%
+%SasakiFreeLivingTypeResults$problem <- paste0("Type Classification, ", SasakiFreeLivingTypeResults$num_class_vars)
+%
+%origSasakiFreeLivingIntensityResults <- SasakiFreeLivingIntensityResults
+%SasakiFreeLivingIntensityResults <- SasakiFreeLivingIntensityResults[SasakiFreeLivingIntensityResults$fit_method %in% c("RF", "BB-Par-CRF", "Gaussian-mixt-HMM", "RF-HMM") & SasakiFreeLivingIntensityResults$case == "1stage/notruth", ]
+%
+%SasakiFreeLivingIntensityResults$problem <- "Intensity Classification"
+%
+%SasakiFreeLivingCombinedResults <- rbind.fill(SasakiFreeLivingTypeResults, SasakiFreeLivingIntensityResults)
+%SasakiFreeLivingCombinedResults$problem <- factor(SasakiFreeLivingCombinedResults$problem)
+%
+%
+%
+%
+%srm <- ManniniCombinedResults %>%
+%	group_by(location, problem, fit_method) %>%
+%	summarise(median_prop_correct = median(prop_correct))
+%srm$ds <- "Data Set 1"
+%
+%srlab <- SasakiLabCombinedResults %>%
+%	group_by(location, problem, fit_method) %>%
+%	summarise(median_prop_correct = median(prop_correct))
+%srlab$ds <- "Data Set 2"
+%
+%srfl <- SasakiFreeLivingCombinedResults %>%
+%	group_by(location, problem, fit_method) %>%
+%	summarise(median_prop_correct = median(prop_correct))
+%srfl$ds <- "Data Set 3"
+%
+%SummarizedCombinedResults <- rbind.fill(srm, srlab, srfl)
+%
+%SummarizedCombinedResults$fit_method <- as.character(SummarizedCombinedResults$fit_method)
+%SummarizedCombinedResults$fit_method <- factor(SummarizedCombinedResults$fit_method, levels = c("BB-Par-CRF", "RF-HMM", "RF", "Gaussian-mixt-HMM"))
+%
+%SummarizedCombinedResults$combined_setting <- paste0(SummarizedCombinedResults$problem, ", ",
+%	SummarizedCombinedResults$location)
+%
+%SummarizedCombinedResults$combined_setting <- factor(SummarizedCombinedResults$combined_setting,
+%	levels = c("Intensity Classification, Ankle", "Intensity Classification, Wrist",
+%		"Intensity Classification, Hip", "Type Classification, 4 Classes, Ankle",
+%		"Type Classification, 4 Classes, Wrist", "Type Classification, 4 Classes, Hip",
+%		"Type Classification, 6 Classes, Ankle", "Type Classification, 6 Classes, Wrist",
+%		"Type Classification, 6 Classes, Hip"))
+%
+%p <- ggplot(SummarizedCombinedResults, aes(x = combined_setting, y = median_prop_correct, group = fit_method)) +
+%	geom_point(aes(shape = fit_method, colour = fit_method)) +
+%	geom_line(aes(linetype = fit_method, colour = fit_method)) +
+%	scale_colour_manual(name = "Classification Method", breaks = levels(SummarizedCombinedResults$fit_method), drop = FALSE, values = color_palette4, limits = levels(SummarizedCombinedResults$fit_method)) +
+%	scale_shape("Classification Method") +
+%	scale_linetype("Classification Method") +
+%#	scale_y_continuous(lim = c(-0.1, 1.1), breaks = c(0, 0.2, 0.4, 0.6, 0.8, 1.0)) +
+%	scale_y_continuous(lim = c(0.4, 1), breaks = c(0.4, 0.6, 0.8, 1.0)) +
+%	xlab("Classification Setting") +
+%	ylab("Median Proportion Correct") +
+%	facet_wrap( ~ ds, ncol = 1) +
+%	theme_bw() +
+%	theme(axis.text.x = element_text(angle = 70, hjust = 1), text = element_text(size = 10))
+%	
+%grid.newpage()
+%pushViewport(viewport(layout = grid.layout(nrow = 2, ncol = 1, heights = unit(c(3 * 1.25, 1), c("lines", "null")))))
+%
+%suppressWarnings(print(p, vp = viewport(layout.pos.row = 2, layout.pos.col = 1)))
+%
+%grid.text("Median Proportion Correct across Subjects\n by Classification Method and Task", gp = gpar(fontsize = 10), vp = viewport(layout.pos.row = 1, layout.pos.col = 1))
+%@
+%\caption{Plot showing the median proportion of windows classified correctly using a leave-one-subject-out procedure.  The median is with respect to subject; we take this as a robust estimator of central tendency of performance of the classification method.}
+%\label{fig:MedianResultsLinePlotp}
+%\end{figure*}
+%
+%There is a fairly large amount of overlap in the box plots, but a clear pattern emerges: overall, the \textbf{RF} and \textbf{Gaussian-mixt-HMM} methods are outperformed by the \textbf{CRF} and \textbf{RF-HMM} by a small margin.  This relationship does not hold for every classification task, but improvements in the median proportion correct achieved by using the dynamic discriminative methods instead of a static or generative method that range from about 0.03 to 0.1 are common.  If we extrapolate to a 16 hour day while holding the proportion of time in each activity category fixed, these improvements correspond to gains of between about 30 and 90 minutes classified correctly in each day.  We also note that for Data Set 1, all of the methods we considered in this article outperformed the support vector machine that was employed in \cite{mannini2013activityrecognition}.
+%
+%Figures \ref{fig:ManniniTypeResultsBoxplotsp} through \ref{fig:MedianResultsLinePlotp} also reveal that the classification rates achieved with free living data are much lower than those achieved with data gathered in the laboratory.  This is consistent with the results of previous studies \citep[e.g.,][]{foerster1999detectionofACvalidation, gyllensten2011evaluatelabalgsinreallife}.  This difference in performance levels likely due to a combination of factors including the increased difficulty of accurate data collection in the free living setting, the smaller size of the free living data set, and differences in the inherent difficulty levels of the classification tasks.
+%
+%In Data Sets 1 and 3, classification was easier when the accelerometer was placed at the ankle or hip than when it was placed at wrist.  This effect was also noted by \cite{mannini2013activityrecognition}.  This pattern is not evident in Data Set 2.
+
+\section{Discussion}
+\label{sec:Discussion}
+
+In this work, we have considered two general characteristics of methods that can be used to classify physical activity type or intensity with accelerometer data: (1) whether or not they handle temporal dependence in activity class, and (2) whether they take a generative or discriminative approach. Through a simulation study and applications to three data sets, we have demonstrated that using a dynamic, discriminative approach can yield consistent gains in the proportion correct relative to static or generative methods.  The argument in favor of dynamic, discriminative models is that they are a better representation of the model than static or generative methods are.  Dynamic models are superior to static models because they capture a key feature of the data: activity types at nearby times are dependent.  Discriminative methods are superior to generative methods because they do not require a specification for the distribution of the feature vector; this distribution is too complex to model well with simple parametric approaches, and is too high-dimensional to be handled easily by non-parametric methods. The complexity of the accelerometer features is illustrated in Figure \ref{fig:dataCharacteristicsComplexity}.
+
+\begin{figure*}
+<<Observation2FeatureComplexity, fig.height = 7, fig.keep = "last", cache = FALSE>>=
+feature_pairs <- list(
+c("x_mean", "z_quantile_0.1"),
+c("y_mean", "phi_mean"),
+c("phi_quantile_0.1", "phi_quantile_0.9"),
+c("z_lag_1_ac", "z_pow_at_dom_freq"))
+
+feature_pairs_pretty <- list(
+c("Mean, X axis", "10th percentile, Z axis"),
+c("Mean, Y axis", expression(paste("Mean, ", phi))),
+c(expression(paste("10th percentile, ", phi)), expression(paste("90th percentile, ", phi))),
+c("Lag 1 autocorrelation, Z axis", "Power at dominant frequency, Z axis"))
+
+# data for legend -- same as for pairs plot
+feature_names <- colnames(SasakiFreeLivingWrist[[1]]$X)
+
+plot_df <- data.frame(
+	class = as.character(unlist(lapply(SasakiFreeLivingWrist, function(comp) comp$y_category3))),
+	subj = factor(unlist(lapply(seq_along(SasakiFreeLivingWrist), function(subj_ind) rep(subj_ind, length(SasakiFreeLivingWrist[[subj_ind]]$y_category3))))),
+	stringsAsFactors = FALSE
+)
+
+for(feature_name in feature_names) {
+	plot_df[[feature_name]] <- unlist(lapply(SasakiFreeLivingWrist, function(comp) comp$X[, feature_name]))
+}
+
+plot_df$class[plot_df$class == "MovInter"] <- "Moving Intermittently"
+plot_df$class[plot_df$class == "transition"] <- "Transition"
+plot_df$class <- factor(plot_df$class, levels = c("Sedentary/Standing", "Moving Intermittently", "Locomotion", "Transition"))
+
+
+p <- ggplot(plot_df) +
+	geom_point(aes(x = y_mean, y = phi_mean, colour = class, shape = class)) +
+	scale_colour_manual(name = "Activity Type", breaks = levels(plot_df$class), drop = FALSE, values = color_palette4, limits = levels(plot_df$class)) +
+	scale_shape("Activity Type", solid = FALSE) +
+	theme_bw() +
+	theme(legend.text = element_text(size = 9))
+
+print(p)
+
+legend_grob <- grid.get("guide-box.3-5-3-5")
+
+
+# grid layout for two plots + legend
+grid.newpage()
+#pushViewport(viewport(layout = grid.layout(nrow = 5, ncol = 3, heights = unit(c(2.2, rep(1, 4)), c("lines", "null", "lines", "null", "lines")), widths = unit(c(1, 1, 0.6), c("null", "null", "null")))))
+pushViewport(viewport(layout = grid.layout(nrow = 3, ncol = 3, heights = unit(c(2.2, rep(1, 2)), c("lines", "null", "null")), widths = unit(c(1, 1, 0.6), c("null", "null", "null")))))
+
+
+# draw legend
+
+#pushViewport(viewport(layout.pos.row = 2:5, layout.pos.col = 3))
+pushViewport(viewport(layout.pos.row = 2:3, layout.pos.col = 3))
+grid.draw(legend_grob)
+upViewport()
+
+
+plot_df$class[plot_df$class == "MovInter"] <- "Moving Intermittently"
+plot_df$class[plot_df$class == "transition"] <- "Transition"
+plot_df$class <- factor(plot_df$class, levels = c("Sedentary/Standing", "Moving Intermittently", "Locomotion", "Transition"))
+
+#plot_pos <- list(c(2, 1), c(2, 2), c(4, 1), c(4, 2))
+plot_pos <- list(c(2, 1), c(2, 2), c(3, 1), c(3, 2))
+
+for(ind in seq_along(feature_pairs)) {
+	p <- ggplot(plot_df) +
+		geom_point(aes_string(x = feature_pairs[[ind]][[1]], y = feature_pairs[[ind]][[2]], colour = "class", shape = "class")) +
+		scale_colour_manual(name = "Activity Type", breaks = levels(plot_df$class), drop = FALSE, values = color_palette4, limits = levels(plot_df$class)) +
+		scale_shape("Activity Type", solid = FALSE) +
+		xlab(feature_pairs_pretty[[ind]][1]) +
+		ylab(feature_pairs_pretty[[ind]][2]) +
+		theme_bw() +
+		theme(legend.text = element_text(size = 9), legend.position = "none")
+	
+	suppressWarnings(print(p, vp = viewport(layout.pos.row = plot_pos[[ind]][[1]], layout.pos.col = plot_pos[[ind]][[2]])))
+}
+
+#grid.text(expression(paste("Mean Vector Magnitude")), gp = gpar(fontsize = 1 * 10), vp = viewport(layout.pos.row = 7, layout.pos.col = 5))
+#grid.text("75th Percentile of Azimuthal Angle", just = "center", rot = 90, gp = gpar(fontsize = 1 * 10), vp = viewport(layout.pos.row = 4:6, layout.pos.col = 4))
+
+#grid.text(expression(paste("Mean Vector Magnitude vs.")), gp = gpar(fontsize = 1.1 * 10), vp = viewport(layout.pos.row = 1, layout.pos.col = 5))
+#grid.text("75th Percentile of Azimuthal Angle", gp = gpar(fontsize = 1.1 * 10), vp = viewport(layout.pos.row = 2, layout.pos.col = 5))
+#grid.text("All Subjects Combined", gp = gpar(fontsize = 1.1 * 10), vp = viewport(layout.pos.row = 3, layout.pos.col = 5))
+
+grid.text("Accelerometer Signal Feature Pair Plots\nAccelerometer on the Wrist, Free Living Data from Sasaki et al. [2016]", gp = gpar(fontsize = 14), vp = viewport(layout.pos.row = 1, layout.pos.col = 1:3))
+#grid.text("(a)", gp = gpar(fontsize = 10), vp = viewport(layout.pos.row = 3, layout.pos.col = 1))
+#grid.text("(b)", gp = gpar(fontsize = 10), vp = viewport(layout.pos.row = 3, layout.pos.col = 2))
+#grid.text("(c)", gp = gpar(fontsize = 10), vp = viewport(layout.pos.row = 5, layout.pos.col = 1))
+#grid.text("(d)", gp = gpar(fontsize = 10), vp = viewport(layout.pos.row = 5, layout.pos.col = 2))
+@
+\caption{Plots of pairs of accelerometer features.  Each point represents one window of length 12.8 seconds in the free living data from \cite{sasaki2016ActivityClassificationOlder} with the accelerometer placed at the wrist.  Features plotted include means, percentiles, lag one autocorrelation, and power at the dominant frequency of acceleration recorded along each axis, and means and percentiles of the azumithal angle $\phi$ in a spherical coordinates representation of the signal.  The azimuthal angle indicates the relative amounts of acceleration recorded along each coordinate axis in the horizontal plane relative to the accelerometer.  There is complex structure in the feature distributions, with multiple modes and a variety of constraints.}
+\label{fig:dataCharacteristicsComplexity}
+\end{figure*}
+
+We have discussed just these two characteristics of the classification method in this article, but there are other aspects of the modeling that we think may be fruitful to press in the future. For instance, all of the methods that we included in our comparisons are based on the same general approach: we divide the acceleration signal up into non-overlapping windows 12.8 seconds long, extract a vector of features summarizing the acceleration signal in each window, and fit a model that relates these features to the activity type in each window.  However, this is not the only option for modeling these data, and other approaches we have not considered may offer superior performance.  One option that was suggested by \citet{zheng2013ACmultiscaleensemble} and \citet{lester2005hybridHMMforPA} is to combine information from several overlapping windows of different lengths.  This idea could be implemented within a single CRF by expanding $\bx_{i, t}$ to include features from multiple window lengths, or by combining inferences from multiple CRFs operating at different time scales.  It may also be beneficial to explore the use of new features.  Another option would be to abandon the windowing approach altogether and model the accelerometer signal directly.  An example of one approach to doing this is in \citet{bai2012movelets}.
+
+Another alternative that we have not explored would be to select a small subset of the features that are most informative, and to model the joint distribution of those features more carefully.   With this approach, generative approaches might be more successful than they are when a high-dimensional feature vector is used.
+
+The dynamic models we discussed in this article employed very simple first-order Markov time dependence structures.  These structures could be expanded to capture more complex dependence in the activity type and intensity.  \citet{mcshane2013learningwithTSDependence} explored several avenues for this using a discriminative HMM, and similar ideas have been developed with CRFs (e.g. \citet{vinh2011semimarkovCRFforPArecognition}).
+
+Our models also implicitly assume that the observation sequences for different subjects follow the same distributions.  This assumption is likely false, since different individuals have different movement patterns.  As a result, the locations in the space of features that are associated with each activity type likely vary across different individuals.  We have not addressed this variation across individuals in our models because we believe that we would need data for more subjects and for more time per subject in order to model this variation.  However, it would be interesting to explore the use of hierarchical models to allow for variation among individuals in future work.
+
+Another restriction imposed in our formulation of the CRF is that the accelerometer features in each time window are only informative about the activity type and intensity at that time.  It seems likely that the accelerometer features are also informative about the activity type and intensity in nearby windows.  This feature of the model could be easily changed; in fact, most specifications of CRF models allow for this type of dependence.  We adopted the formulation used in this article so that we could compare the different treatments of the feature vectors in discriminative and generative models with similar structures.  However, a more flexible CRF specification might lead to improved classification performance.
+
+While any one of these approaches might be feasible to estimate, we believe that they would lead to only modest improvements in classification performance in the free living setting.  We believe that the quality of the data is a more important limiting factor.  While free living data is important to collect because laboratory data tends to lead to models that perform poorly outside of the laboratory, data collection is much more difficult in the free living setting than it is in the laboratory (\citet{sasaki2016ActivityClassificationOlder}).  A result of this is that our recorded labels for physical activity type are less reliable.  This impacts the training of the classification methods, since the classifiers may learn to associate certain patterns in the accelerometer signal with the incorrect labels.  It also impacts our scoring of the success of the classifier through leave one subject out cross validation, since a predicted class label may give an accurate description of a subject's behavior but disagree with the recorded class.  One way to limit this problem would be to incorporate a method of validating the class labels in the study design, for instance by recording videos of subjects while they are wearing the accelerometers.
+
+\section*{Acknowledgements}
+
+The authors thank Dr. Stephen Intille (Northeastern University) for making his data available to us. This work was partially supported by National Cancer Institute grant (R01-CA121005).
+
+\appendix
+\section{CRF Estimation Algorithm}
+\label{sec:appendix:bbparalg}
+
+Algorithm \ref{alg:CRFmodel1Est} specifies the estimation procedure we used for the \textbf{CRF} model.
+
+\begin{AlgorithmWrapper}[!hp]
+\begin{minipage}{\textwidth}
+\baselineskip=12pt
+\begin{algorithm}{\textbf{CRF} Estimation Algorithm} \label{alg:CRFmodel1Est}
+
+\vspace{0.05cm}
+\textbf{Method:} \textbf{estimate\_CRF} \\
+\textbf{Inputs:} Labeled data $\{(\by_i, \bx_i), \, i = 1, \ldots, N\}$ \\
+\textbf{Outputs:} \textbf{CRF} parameter estimates.
+\begin{enumerate}
+\item Initialize all parameter estimates $\widehat{\bzeta}$, $\widehat{\bomega}$, and $\widehat{\bbeta}$ to $\b0$.
+\item For $b = 1, \ldots, M_{bag}$, repeat the following:
+	\begin{enumerate}
+	\item Draw a sample of $N$ observation sequences with replacement from the set of all observation sequences.  Collect the sampled sequences in $\mathcal{B}^{b}$ and the unsampled sequences in $\mathcal{O}^{b}$. \label{alg:CRFmodel1AlgBag}
+	\item Call \textbf{boost\_CRF}$(\mathcal{B}^{b}, \mathcal{O}^{b})$; the return value is the vector $(\widehat{\bzeta}^b, \widehat{\bomega}^b, \widehat{\bbeta}^b)$. \label{alg:CRFmodel1AlgCallBoost}
+	\item Set $\widehat{\bzeta} = \widehat{\bzeta} + \frac{1}{M_{bag}} \widehat{\bzeta}^b$, $\widehat{\bomega} = \widehat{\bomega} + \frac{1}{M_{bag}} \widehat{\bomega}^b$, and $\widehat{\bbeta} = \widehat{\bbeta} + \frac{1}{M_{bag}} \widehat{\bbeta}^b$. \label{alg:CRFmodel1AlgCombineComponents}
+	\end{enumerate}
+\item Return the combined parameter estimates $(\widehat{\bzeta}, \widehat{\bomega}, \widehat{\bbeta})$.
+\end{enumerate}
+\vspace{0.05cm}
+\textbf{Method:} \textbf{boost\_CRF} \\
+\textbf{Inputs:} Labeled data $\{(\by_i, \bx_i), \, i = 1, \ldots, N_{train}\}$ and $\{(\by_i, \bx_i), \, i = 1, \ldots, N_{validation}\}$. \\
+\textbf{Outputs:} \textbf{CRF} parameter estimates.
+\begin{enumerate}
+\item Initialize $m = 0$, ${\tt validation\_score}[0] = -\infty$, $\widehat{\bbeta} = \b0$, $\widehat{\zeta}_s = log(\frac{n_{s}}{n_S})$ and $\widehat{\omega}_{r,s} = log(\frac{n_{r,s}}{n_{S,S}})$ for all $r,s = 1, \ldots, S$.  Here, $n_s$ is the number of occurrences of state $s$ and $n_{r,s}$ is the number of transitions from state $r$ to state $s$ in the training data set. \label{alg:CRFmodel1AlgInitZetaOmega}
+\item Repeat the following until the first occurrence of the largest element of ${\tt validation\_score}$ is not within the last ${\tt M\_search\_threshold}$ values stored in ${\tt validation\_score}$:
+	\begin{enumerate}
+	\item Set $m = m + 1$, ${\tt attempt\_num} = 0$, and ${\tt validation\_score}[m] = {\tt validation\_score}[m-1]$.
+	\item Repeat the following until ${\tt validation\_score}[m] > {\tt validation\_score}[m - 1]$ or ${\tt attempt\_num} = {\tt max\_attempts}$: \label{alg:CRFmodel1AlgAttemptsLoop}
+		\begin{enumerate}
+		\item Set ${\tt attempt\_num} = {\tt attempt\_num} + 1$, $\tilde{\bomega} = \widehat{\bomega}$ and $\tilde{\bbeta} = \widehat{\bbeta}$.
+		\item Randomly select the set $\mathcal{A}^{m} \subset \{1, \ldots, D\}$ of active features for the $m$th update.  The number of active features is a user specified parameter.  %The coefficients $\beta_{s, d}^{m}$ are fixed equal to $0$ for $d \notin \mathcal{A}^{m}$. % The number of active features is a user specified parameter. {\tt num\_active\_features}
+%		\item Initialize $\tilde{\bbeta}_{s, d}^{m}$ for $d \in \{0\} \bigcup \mathcal{A}^{m}$ by fitting a multinomial logistic regression model with offsets equal to $\widehat{\zeta}_{y_{i, 1}}^{\ind_{\{1\}}(t)} \widehat{\omega}_{y_{i, t}}^{(1 -\ind_{\{1\}}(t))} + \widehat{\beta}_{s, 0} + \sum_{d = 1}^D \widehat{\beta}_{s, d} x_{i, t, d}.$
+%$$\left( \sum_{l = 1}^{m-1} \zeta_{y_{i, 1}}^l \right)^{\ind_{\{1\}}(t)} \left( \sum_{l = 1}^{m-1} \omega_{y_{i, t}}^l \right)^{(1 -\ind_{\{1\}}(t))} + \sum_{l = 1}^{m-1} \left( \beta_{s, 0}^{l} + \sum_{d = 1}^D \beta_{s, d}^{l} x_{i, t, d} \right).$$
+%.  Fix the remaining $\tilde{\bbeta}_{s, d}^{m_{boost}} = 0$. \label{alg:CRFmodel1AlgInitBeta}
+		\item Using a numerical optimization routine, update $\tilde{\bomega}$ and $\tilde{\bbeta}$ to the constrained local maximum likelihood estimates based on the training data, holding the parameter estimates for elements of $\tilde{\bbeta}$ not in the active feature set fixed. \label{alg:CRFmodel1AlgUpdateOmegaBeta}
+		\item Using the estimates from step \ref{alg:CRFmodel1AlgUpdateOmegaBeta}, predict the values of $\by_i$ for the validation data set.  If the proportion of time points at which the prediction was correct is greater than ${\tt validation\_score}[m]$, store it in ${\tt validation\_score}[m]$ and set $\widehat{\bomega} = \tilde{\bomega}$ and $\widehat{\bbeta} = \tilde{\bbeta}$.
+		\end{enumerate}
+%	\item Set $\widehat{\bzeta} = \widehat{\bzeta} + \widehat{\bzeta}^m$, $\widehat{\bomega} = \widehat{\bomega} + \widehat{\bomega}^m$, and $\widehat{\bbeta} = \widehat{\bbeta} + \widehat{\bbeta}^m$.
+	\end{enumerate}
+\item Return $(\widehat{\bzeta}, \widehat{\bOmega}, \widehat{\bbeta})$.
+\end{enumerate}
+\end{algorithm}
+\vspace{0.5cm}
+\end{minipage}
+\end{AlgorithmWrapper}
+
+
+\section{Accelerometer Features}
+\label{sec:appendix:2}
+
+Tables \ref{tbl:ManniniFeatures} and \ref{tbl:SasakiFeatures} list the accelerometer features used for the data from \citet{mannini2013activityrecognition} and \citet{sasaki2016ActivityClassificationOlder} respectively.
+
+\begin{table}[!hp]
+\centering
+\begin{tabular}{>{\raggedleft}p{.15\textwidth} >{\raggedright\arraybackslash}p{.8\textwidth}}
+\toprule
+Domain & Feature \\
+\midrule
+Time & Mean \\
+\cmidrule{2-2}
+ & Standard deviation\\
+\cmidrule{2-2}
+ & Minimum and maximum\\
+\midrule
+Frequency & Frequency and power of the first dominant frequency between 0.3 Hz and 15 Hz \\
+\cmidrule{2-2}
+ & Frequency and power of the second dominant frequency between 0.3 Hz and 15 Hz \\
+\cmidrule{2-2}
+ & Total power between 0.3 Hz and 15 Hz \\
+\cmidrule{2-2}
+ & Ratio of the power of the first dominant frequency between 0.3 Hz and 15 Hz and the total power between 0.3 Hz and 15 Hz \\
+\cmidrule{2-2}
+ & Frequency and power of the first dominant frequency between 0.3 Hz and 3 Hz \\
+\cmidrule{2-2}
+ & Ratio of the frequency of the first dominant frequency between 0.3 Hz and 15 Hz in the current window and in the previous window \\
+\bottomrule
+\end{tabular}
+\caption{Features extracted from the accelerometer signal in preprocessing the data from \cite{mannini2013activityrecognition}.  All features are computed using the acceleration vector magnitude.}
+\label{tbl:ManniniFeatures}
+\end{table}
+
+\begin{table}[!hp]
+\centering
+\begin{tabular}{>{\raggedleft}p{.1\textwidth} >{\raggedright\arraybackslash}p{.6\textwidth} >{\raggedleft}p{.01\textwidth} >{\raggedleft}p{.01\textwidth} >{\raggedleft}p{.01\textwidth} >{\raggedleft}p{.025\textwidth} >{\raggedleft}p{.01\textwidth} >{\raggedleft}p{.01\textwidth}}
+%\begin{tabular}{>{\raggedleft}p{.11\textwidth} >{\raggedright\arraybackslash}p{.59\textwidth} >{\centering}p{.015\textwidth} >{\centering}p{.015\textwidth} >{\centering}p{.015\textwidth} >{\centering}p{.015\textwidth} >{\centering}p{.015\textwidth} >{\centering}p{.015\textwidth}}
+%\begin{tabular}{>{\raggedleft}p{.11\textwidth} >{\raggedright\arraybackslash}p{.59\textwidth} c c c c c c}
+\toprule
+%Domain & Feature & \multicolumn{1}{b{.015\textwidth}}{\parbox[b]{.015\textwidth}{\begin{center}X\end{center}}} & \multicolumn{1}{b{.015\textwidth}}{\parbox[b]{.015\textwidth}{\begin{center}Y\end{center}}} & \multicolumn{1}{b{.015\textwidth}}{\parbox[b]{.015\textwidth}{\begin{center}Z\end{center}}} & \multicolumn{1}{b{.015\textwidth}}{\parbox[b]{.015\textwidth}{\begin{center}VM\end{center}}} & \multicolumn{1}{b{.015\textwidth}}{\parbox[b]{.015\textwidth}{\begin{center}$\theta$\end{center}}} & \multicolumn{1}{b{.015\textwidth}}{\parbox[b]{.015\textwidth}{\begin{center}$\rho$\end{center}}} \tabularnewline
+Domain & Feature & X & Y & Z & VM & $\theta$ & $\phi$ \tabularnewline
+\midrule
+Time & Mean & Y & Y & Y & Y & Y & Y \tabularnewline
+\cmidrule{2-8}
+ & The 10th, 25th, 50th, 75th, and 90th percentiles & Y & Y & Y & Y & Y & Y \tabularnewline
+\cmidrule{2-8}
+ & Lag 1 autocorrelation & Y & Y & Y & Y & N & N \tabularnewline
+\cmidrule{2-8}
+ & Entropy: We place the observed VM values into 10 bins of equal size and calculate the proportion falling into each bin, $p_{1}, \ldots, p_{10}$.  The estimated entropy is then $-\frac{1}{10}\sum_{i = 1}^{10} p_{i} log(p_{i})$ & N & N & N & Y & N & N \tabularnewline
+\midrule
+Frequency & Frequency and power of the first dominant frequency & Y & Y & Y & Y & N & N \tabularnewline % : The frequency and estimated power for the frequency with the highest estimated power
+\cmidrule{2-8}
+ & Frequency and power of the second dominant frequency & Y & Y & Y & Y & N & N \tabularnewline %: Same as above, for the frequency with the second-highest estimated power
+\cmidrule{2-8}
+ & Total power: The sum of the estimated power for all frequencies. & Y & Y & Y & Y & N & N \tabularnewline % Note that this is equal to $\frac{T-1}{2}$ times the sample variance of the observations if $T$ is odd, with a slight adjustment if $T$ is even.
+\cmidrule{2-8}
+ & Frequency and power of the first dominant frequency in the band from 0.3 to 3 Hz & Y & Y & Y & Y & N & N \tabularnewline
+\cmidrule{2-8}
+ & Ratio of power of first dominant frequency in the band from 0.3 to 3Hz to power of first dominant frequency overall & Y & Y & Y & Y & N & N \tabularnewline
+\cmidrule{2-8}
+ & Entropy of the spectral density: After normalizing the estimated powers so that they sum to 1, we apply the entropy calculation above. & Y & Y & Y & Y & N & N \tabularnewline  %  This is a measure of how uniformly ``distributed'' the variance is among the frequencies considered.
+\bottomrule
+\end{tabular}
+\caption{Features extracted from the accelerometer signal in preprocessing the data from \cite{sasaki2016ActivityClassificationOlder}.  The right-hand 6 columns indicate whether the listed feature was computed for each of the three axes on which acceleration was measured, vector magnitude, polar angle, and azimuthal angle.} %anteroposterior axis, mediolateral axis, vertical axis, 
+\label{tbl:SasakiFeatures}
+\end{table}
+
+
+%Figures \ref{fig:ManniniTypeResultsBoxplotsp}, \ref{fig:SasakiLabTypeResultsBoxplotsp}, and \ref{fig:SasakiFreeLivingTypeResultsBoxplotsp} present box plots of the results obtained from performing classification of type and intensity for each of our three data sets with a leave-one-subject-out design.
+%
+%\begin{figure}
+%<<ManniniTypeResultsBoxplotsp, cache = FALSE, fig.height = 9.25>>=
+%p <- ggplot(ManniniCombinedResults, aes(x = fit_method, y = prop_correct)) +
+%	geom_point(position = position_jitter(w = 0.2)) +
+%	geom_boxplot(fill = "white", outlier.colour = NA) +
+%	scale_y_continuous(lim = c(-0.1, 1.1), breaks = c(0, 0.2, 0.4, 0.6, 0.8, 1.0)) +
+%	xlab("Classification Method") +
+%	ylab("Proportion Correct") +
+%	facet_grid(location ~ problem) +
+%#	ggtitle("Proportion Correct by Location and Classification Method\nMannini Data") +
+%	theme_bw() +
+%	theme(axis.text.x = element_text(angle = 70, hjust = 1))
+%	
+%grid.newpage()
+%pushViewport(viewport(layout = grid.layout(nrow = 2, ncol = 1, heights = unit(c(2 * 1.25, 1), c("lines", "null")))))
+%grid.text("Proportion Correct by Accelerometer Location and Classification Method\nMannini Data", gp = gpar(fontsize = 1.2 * 12), vp = viewport(layout.pos.row = 1, layout.pos.col = 1))
+%
+%#	suppressWarnings(print(p))
+%	suppressWarnings(print(p, vp = viewport(layout.pos.row = 2, layout.pos.col = 1)))
+%@
+%
+%\caption{Box plots showing the proportion of windows classified correctly in the data from \protect\cite{mannini2013activityrecognition} using a leave-one-subject-out procedure.  A separate box plot is displayed for each combination of accelerometer location and classification method.  Each point corresponds to a combination of accelerometer location, classification method, and subject.}
+%\label{fig:ManniniTypeResultsBoxplotsp}
+%\end{figure}
+%
+%\begin{figure}
+%<<SasakiLabTypeResultsBoxplotsp, cache = FALSE>>=
+%p <- ggplot(SasakiLabCombinedResults, aes(x = fit_method, y = prop_correct)) + #, fill = class_var, colour = class_var)) +
+%#	geom_point(position = position_jitterdodge(jitter.width = 0.2)) +
+%	geom_point(position = position_jitter(w = 0.2)) +
+%	geom_boxplot(fill = "white", outlier.colour = NA, position = "dodge") +
+%	scale_y_continuous(lim = c(-0.1, 1.1), breaks = c(0, 0.2, 0.4, 0.6, 0.8, 1.0)) +
+%#	scale_colour_manual("Number of Classes", breaks = c("y_category3", "y_category5"), labels = c("4", "6"), values = c("#e66101", "#b2abd2")) +
+%#	scale_fill_manual("Number of Classes", breaks = c("y_category3", "y_category5"), labels = c("4", "6"), values = c("#e66101", "#b2abd2")) +
+%	xlab("Classification Method") +
+%	ylab("Proportion Correct") +
+%	facet_grid(location ~ problem) +
+%#	ggtitle("Proportion Correct by Accelerometer Location,\nNumber of Classes, and Classification Method\nSasaki Lab Data") +
+%	theme_bw() +
+%	theme(axis.text.x = element_text(angle = 70, hjust = 1))
+%
+%grid.newpage()
+%pushViewport(viewport(layout = grid.layout(nrow = 4, ncol = 1, heights = unit(c(rep(1.25, 3), 1), c(rep("lines", 3), "null")))))
+%
+%#	suppressWarnings(print(p))
+%	suppressWarnings(print(p, vp = viewport(layout.pos.row = 4, layout.pos.col = 1)))
+%
+%grid.text("Proportion Correct by Accelerometer Location,", gp = gpar(fontsize = 1.2 * 12), vp = viewport(layout.pos.row = 1, layout.pos.col = 1))
+%grid.text("Number of Classes, and Classification Method", gp = gpar(fontsize = 1.2 * 12), vp = viewport(layout.pos.row = 2, layout.pos.col = 1))
+%grid.text("Sasaki Lab Data", gp = gpar(fontsize = 1.2 * 12), vp = viewport(layout.pos.row = 3, layout.pos.col = 1))
+%@
+%
+%\caption{Box plots showing the proportion of windows classified correctly in the laboratory data from using a leave-one-subject-out procedure.  A separate box plot is displayed for each combination of accelerometer location, classification method, and number of classes.  Each point corresponds to a combination of accelerometer location, classification method, number of classes, and subject.}
+%\label{fig:SasakiLabTypeResultsBoxplotsp}
+%\end{figure}
+%
+%\begin{figure}
+%<<SasakiFreeLivingTypeResultsBoxplotsp, cache = FALSE, fig.height = 9.25>>=
+%p <- ggplot(SasakiFreeLivingCombinedResults, aes(x = fit_method, y = prop_correct)) + #, fill = class_var, colour = class_var)) +
+%	geom_point(position = position_jitter(w = 0.2)) +
+%	geom_boxplot(fill = "white", outlier.colour = NA, position = "dodge") +
+%	scale_y_continuous(lim = c(-0.1, 1.1), breaks = c(0, 0.2, 0.4, 0.6, 0.8, 1.0)) +
+%	xlab("Classification Method") +
+%	ylab("Proportion Correct") +
+%	facet_grid(location ~ problem) +
+%	theme_bw() +
+%	theme(axis.text.x = element_text(angle = 70, hjust = 1))
+%	
+%grid.newpage()
+%pushViewport(viewport(layout = grid.layout(nrow = 2, ncol = 1, heights = unit(c(3 * 1.25, 1), c("lines", "null")))))
+%
+%suppressWarnings(print(p, vp = viewport(layout.pos.row = 2, layout.pos.col = 1)))
+%
+%grid.text("Proportion Correct by Accelerometer Location,\nNumber of Classes, and Classification Method\nSasaki Free Living Data", gp = gpar(fontsize = 1.2 * 12), vp = viewport(layout.pos.row = 1, layout.pos.col = 1))
+%@
+%\caption{Box plots showing the proportion of windows classified correctly in the free living data from using a leave-one-subject-out procedure.  A separate box plot is displayed for each combination of accelerometer location, classification method, and number of classes.  Each point corresponds to a combination of accelerometer location, classification method, number of classes, and subject.}
+%\label{fig:SasakiFreeLivingTypeResultsBoxplotsp}
+%\end{figure}
+
+\newpage
+\newpage
+
+\bibliographystyle{plainnat}
+\bibliography{HMMbib}
+
+
+
+\end{document}
