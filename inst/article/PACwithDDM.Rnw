@@ -458,26 +458,16 @@ Figure~\ref{fig:simStudyResultsBoxplotsp} summarizes the results of the simulati
 <<simStudyResultsBoxplotsp, cache = FALSE, fig.height = 5>>=
 origsimStudyResults <- simStudyResults
 #simStudyResults <- simStudyResults[simStudyResults$fit_method %in% c("Gaussian-mixt-HMM", "BB-Par-CRF", "RF", "Bayes-Rule"), ]
-simStudyResults <- simStudyResults[simStudyResults$fit_method %in% c("Gaussian-mixt-HMM", "BB-Par-CRF", "RF"), ]
-
-fit_method_levels <- levels(simStudyResults$fit_method)
-fit_method_levels[fit_method_levels == "Gaussian-mixt-HMM"] <- "HMM"
-fit_method_levels[fit_method_levels == "BB-Par-CRF"] <- "CRF"
-fit_method_levels[fit_method_levels == "Bayes-Rule"] <- "Bayes Rule"
-simStudyResults$fit_method <- as.character(simStudyResults$fit_method)
-simStudyResults$fit_method[simStudyResults$fit_method == "Gaussian-mixt-HMM"] <- "HMM"
-simStudyResults$fit_method[simStudyResults$fit_method == "BB-Par-CRF"] <- "CRF"
-simStudyResults$fit_method[simStudyResults$fit_method == "Bayes-Rule"] <- "Bayes Rule"
-simStudyResults$fit_method <- factor(simStudyResults$fit_method, levels = fit_method_levels)
+#simStudyResults <- simStudyResults[simStudyResults$fit_method %in% c("Gaussian-mixt-HMM", "BB-Par-CRF", "RF"), ]
 
 names(simStudyResults)[names(simStudyResults) == "obs_dist_normal"] <- "obs_dist_complex"
 levels(simStudyResults$obs_dist_complex) <- c("Complex", "Simple")
 simStudyResults$obs_dist_complex_pretty <- simStudyResults$obs_dist_complex
 levels(simStudyResults$obs_dist_complex_pretty) <- c("Complex Emission Distribution", "Simple Emission Distribution")
 
-levels(simStudyResults$bayes_error_rate_high) <- c("Low", "High")
-simStudyResults$bayes_error_rate_high_pretty <- simStudyResults$bayes_error_rate_high
-levels(simStudyResults$bayes_error_rate_high_pretty) <- c("Low Bayes Error", "High Bayes Error")
+levels(simStudyResults$time_dep) <- c("No Time Dependence", "Time Dependence")
+#simStudyResults$time_dep_pretty <- simStudyResults$bayes_error_rate_high
+#levels(simStudyResults$bayes_error_rate_high_pretty) <- c("Low Bayes Error", "High Bayes Error")
 
 #p <- ggplot(simStudyResults, aes(x = fit_method, y = prop_correct)) +
 #	geom_point(position = position_jitter(w = 0.2)) +
@@ -489,17 +479,17 @@ levels(simStudyResults$bayes_error_rate_high_pretty) <- c("Low Bayes Error", "Hi
 #	theme_bw() +
 #	theme(axis.text.x = element_text(angle = 70, hjust = 1), text = element_text(size = 18))
 
-p <- ggplot(simStudyResults[simStudyResults$bayes_error_rate_high == "Low", ], aes(x = fit_method, y = prop_correct)) +
-	geom_point(position = position_jitter(w = 0.2)) +
+p <- ggplot(simStudyResults, aes(x = fit_method, y = prop_correct)) +
+#	geom_point(position = position_jitter(w = 0.2)) +
 	geom_boxplot(fill = "white", outlier.colour = NA) +
-	facet_grid(~ obs_dist_complex_pretty) +
+	facet_grid(time_dep ~ obs_dist_complex_pretty) +
 #	scale_y_continuous(lim = c(0, 1), breaks = c(0, 0.2, 0.4, 0.6, 0.8, 1.0), expand = c(0, 0)) +
-	scale_y_continuous(lim = c(0.7, 1), expand = c(0, 0)) +
+#	scale_y_continuous(lim = c(0.7, 1), expand = c(0, 0)) +
 	xlab("Classification Method") +
 	ylab("Proportion Correct") +
-	theme_bw() +
-	theme(axis.text.x = element_text(angle = 70, hjust = 1), text = element_text(size = 18))
-	
+	theme_bw()# +
+#	theme(axis.text.x = element_text(angle = 70, hjust = 1), text = element_text(size = 18))
+
 grid.newpage()
 pushViewport(viewport(layout = grid.layout(nrow = 2, ncol = 1, heights = unit(c(2 * 1.4, 1), c("lines", "null")))))
 
@@ -691,6 +681,8 @@ combined_results_by_subject <-
 # 	data = combined_results_by_subject,
 # 	control = lmeControl(maxIter = 500, msMaxIter = 500, niterEM = 250, msMaxEval = 2000))
 
+#table(paste(combined_results_by_subject$location, combined_results_by_subject$fit_method, combined_results_by_subject$data_set, combined_results_by_subject$response, combined_results_by_subject$subject))
+
 results_fit <- lme(fixed = prop_correct ~ location * fit_method * data_set * response,
  	random = ~ 1 | unique_subject,
 #	weights = varIdent(form = ~ 1 | subject * location),
@@ -847,7 +839,7 @@ ggplot(summary_figure_df) +
  	scale_y_continuous(limits = c(0.5, 1), expand = c(0, 0)) +
   theme_bw()
 @
-\caption{Results from activity type and intensity classification tasks in data from \citet{mannini2013activityrecognition} and \citet{sasaki2016ActivityClassificationOlder}, averaged across the three data sets and two accelerometer locations.  The 95\% confidence intervals are from a linear mixed effects model.}
+\caption{Results from activity type and intensity classification tasks in data from \citet{mannini2013activityrecognition} and \citet{sasaki2016ActivityClassificationOlder}, averaged across the three data sets and two accelerometer locations.  The joint confidence intervals are from a linear mixed effects model and have a familywise confidence level of 95\%.}
 \end{figure}
 
 %' \begin{figure}
