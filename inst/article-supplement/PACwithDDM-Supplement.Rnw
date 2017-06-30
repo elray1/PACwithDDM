@@ -1,0 +1,510 @@
+\documentclass[12pt]{article}
+
+\usepackage{verbatim,color,amssymb,epsfig}
+\usepackage{amsthm}
+\usepackage{natbib}
+\usepackage[usenames,dvipsnames]{xcolor}
+\usepackage{fancyhdr}
+
+\usepackage{booktabs}
+\usepackage{array}
+\usepackage{paralist}
+\usepackage[figuresright]{rotating}
+\usepackage{graphicx}
+\usepackage{listings}
+\usepackage{float}
+
+\newcommand{\lbl}[1]{\label{#1}{\fbox{\tiny\upshape#1}}}
+%\newcommand{\lbl}[1]{\label{#1}}
+
+\setlength{\textheight}{9in}
+\setlength{\textwidth}{6.5in}
+\setlength{\topmargin}{-36pt}
+\setlength{\oddsidemargin}{0pt}
+\setlength{\evensidemargin}{0pt}
+\tolerance=500
+\renewcommand{\baselinestretch}{1.5}
+
+
+\include{GrandMacros}
+\newcommand{\norm}[1]{\vert\vert #1 \vert\vert}
+\newcommand{\ind}{\mathbb{I}}
+
+\theoremstyle{plain}
+\newtheorem{algorithm}{Algorithm}
+
+\newfloat{AlgorithmWrapper}{tbp}{lop}
+
+%\linespread{1.6}
+
+
+\newcolumntype{R}[1]{>{\begin{turn}{90}\begin{minipage}{#1}\normalsize}l%
+<{\end{minipage}\end{turn}}%
+}
+
+<<echo = FALSE, warning = FALSE, message = FALSE>>=
+library("knitr")
+opts_chunk$set(echo = FALSE, fig.path = "Plots/", cache = FALSE)
+
+library("PACwithDDM")
+library("ggplot2")
+library("grid")
+library("reshape")
+library("plyr")
+library("dplyr")
+library("tidyr")
+library("rstream")
+library("mvtnorm")
+library("MASS")
+library("gtable")
+
+color_palette3 <- c("#e66101", "#fdb863", "#2d004b")
+color_palette4 <- c("#e66101", "#fdb863", "#b2abd2", "#5e3c99")
+color_palette4_wl <- c("#e66101", "#fdb863", "#5e3c99", "#f7f7f7")
+color_palette5 <- c("#e66101", "#fdb863", "#f7f7f7", "#5e3c99", "#2d004b")
+color_palette9_wl <- c("#b35806", "#e08214", "#fdb863", "#fee0b6", "#d8daeb", "#b2abd2", "#8073ac", "#542788", "#f7f7f7")
+color_palette11_wl <- c("#7f3b08", "#b35806", "#e08214", "#fdb863", "#fee0b6", "#d8daeb", "#b2abd2", "#8073ac", "#542788", "#2d004b", "#f7f7f7")
+@
+
+%\numberwithin{equation}{section}
+
+\renewcommand{\figurename}{Supplemental Figure}
+
+\begin{document}
+%\SweaveOpts{concordance=TRUE}
+
+\thispagestyle{empty}
+\begin{center}
+{\LARGE{\bf Supplement to Physical Activity Classification with Dynamic, Discriminative Methods}}
+\end{center}
+\baselineskip=12pt
+
+\vskip 10mm
+\begin{center}
+Evan Ray\\
+Department of Mathematics and Statistics, University of Massachusetts, \\
+Amherst, MA 01003-9305, USA \\
+Evan.L.Ray@gmail.com\\
+\hskip 5mm \\
+Jeffer Sasaki\\
+Graduate Program in Physical Education, Universidade Federal do Triangulo Mineiro, \\
+Uberaba, Minas Gerais, Brazil \\
+\hskip 5mm \\
+Patty Freedson\\
+Department of Kinesiology, University of Massachusetts, \\
+Amherst, MA 01003-9305, USA \\
+\hskip 5mm \\
+John Staudenmayer\\
+Department of Mathematics and Statistics, University of Massachusetts, \\
+Amherst, MA 01003-9305, USA \\
+\end{center}
+
+
+
+\section{Introduction}
+\label{sec:Intro}
+
+In this supplement we present additional results showing the performance of each method in the simulation study and in the applications as measured by the macro $F_1$ score, as well as a description of the mixed effects models used to estimate mean performance for each model and assess whether the differences in model performance were statistically significant.
+
+
+\section{Simulation Study}
+\label{sec:SimulationStudy}
+
+In the main manuscript, we summarized results for the simulation study using the proportion of windows that were classified correctly.  Here we display summaries of the macro $F_1$ scores achieved by each method.  The macro $F_1$ score is defined as
+
+\begin{eqnarray*}
+F_1 & = & 2 \frac{\mbox{Precision} \cdot \mbox{Recall}}{\mbox{Precision} + \mbox{Recall}} \mbox{, where} \\
+\mbox{Precision} & = & \frac{1}{S}\sum_{s = 1}^S \frac{\mbox{TP}_s}{\mbox{TP}_s + \mbox{FP}_s} \mbox{ and} \\
+\mbox{Recall} & = & \frac{1}{S}\sum_{s = 1}^S \frac{\mbox{TP}_s}{\mbox{TP}_s + \mbox{FN}_s}
+\end{eqnarray*}
+
+Here, $\mbox{TP}_s$, $\mbox{FP}_s$, and $\mbox{FN}_s$ are respectively the true positive rate, false positive rate, and false negative rate for class $i$.  This score is a useful complement to the overall proportion correct because it incorporates both precision and recall and gives equal weight weight to all classes, whereas the proportion correct gives more weight to more prevalent classes \citep{sokolova2009classifiermeasures}.
+
+For the simulation study, the relative performance of the methods as measured by the macro $F_1$ score was the same as it was when the methods were evaluated using the proportion correct (Supplemental Figure~\ref{fig:simStudyResultsBoxplotsf1}).
+
+% read in data for plots
+<<DataCharacteristsicsPlotReadData, cache = TRUE>>=
+PACwithDDM_location <- find.package("PACwithDDM")
+
+L_subject_numbers <- c("22")
+R_subject_numbers <- c("01", "04", "06", "08", "11", "19", "20", "21", "23", "24", "27", "32", "33", "34")
+subject_numbers <- c(L_subject_numbers, R_subject_numbers)
+
+subj <- "22"
+location <- "ankle"
+location_first_upper <- "Ankle"
+#location <- "hip"
+#location_first_upper <- "Hip"
+
+L_actigraph_file_path_termination <- paste0(substr(location_first_upper, 1, 1), "L80DORAW.csv")
+R_actigraph_file_path_termination <- paste0(substr(location_first_upper, 1, 1), "R80DORAW.csv")
+if(subj %in% L_subject_numbers) {
+	actigraph_file_name <- paste0("AG", subj, L_actigraph_file_path_termination)
+} else {
+	actigraph_file_name <- paste0("AG", subj, R_actigraph_file_path_termination)
+}
+actigraph_file_path <- file.path(PACwithDDM_location, "extdata", "Sasaki", "Free Living data", "Actigraph", location_first_upper, "csv", actigraph_file_name)
+    
+DO_file_name <- paste0("ACE", subj, "DO.txt")
+DO_file_path <- file.path(PACwithDDM_location, "extdata", "Sasaki", "Free Living data", "ACE DO data", DO_file_name)
+    
+DO_adjustment_file_name <- paste0("DO_adjustment_subj", subj, "_", "hip", ".txt")
+DO_adjustment_file_path <- file.path(PACwithDDM_location, "extdata", "Sasaki", "Free Living data", "rayDOadjustments", DO_adjustment_file_name)
+
+raw_processed_data <- suppressWarnings(Sasaki_combine_free_living_actigraph_and_DO_files(actigraph_file_path = actigraph_file_path, DO_file_path = DO_file_path, DO_adjustment_file_path = DO_adjustment_file_path, drop_private = TRUE))
+
+plot_data <- data.frame(reduced_vm = apply(as.matrix(raw_processed_data[, c("x", "y", "z")]), 1, function(row_dat) sqrt(sum(row_dat^2))))
+plot_data$category3 <- raw_processed_data$category3
+plot_data$category5 <- as.character(raw_processed_data$category5)
+new_levels <- levels(raw_processed_data$category5)[levels(raw_processed_data$category5) != "Recreational"]
+plot_data$category5[plot_data$category5 == "MovInter"] <- "Moving Intermittently"
+new_levels[new_levels == "MovInter"] <- "Moving Intermittently"
+plot_data$category5 <- factor(as.character(plot_data$category5), levels = c("Sedentary", "Standing", "Locomotion", "Moving Intermittently"))
+
+window_length <- 12.8
+sampling_freq <- 80
+processed_data <- suppressWarnings(Sasaki_preprocess_one_free_living_file(actigraph_file_path = actigraph_file_path, DO_file_path = DO_file_path, DO_adjustment_file_path = DO_adjustment_file_path, sampling_freq = sampling_freq, window_length = window_length, drop_private = TRUE))
+
+plot_data$reduced_cat <- as.character(rep(processed_data$y_category3, each = sampling_freq * window_length)[seq_along(plot_data$reduced_vm)])
+plot_data$reduced_cat[plot_data$reduced_cat == "MovInter"] <- "Moving Intermittently"
+plot_data$reduced_cat[plot_data$reduced_cat == "transition"] <- "Transition"
+plot_data$reduced_cat <- factor(plot_data$reduced_cat, levels = c("Sedentary/Standing", "Moving Intermittently", "Locomotion", "Transition"))
+
+opd <- plot_data
+plot_data <- plot_data[seq_len(80 * 60 * 60), ]
+@
+
+
+\begin{figure}
+<<simStudyResultsBoxplotsf1, cache = FALSE, fig.height = 6>>=
+simStudyResults$fit_method <- factor(as.character(simStudyResults$fit_method), levels = c("FMM", "HMM", "MLR", "CRF", "RF"))
+names(simStudyResults)[names(simStudyResults) == "obs_dist_normal"] <- "obs_dist_complex"
+levels(simStudyResults$obs_dist_complex) <- c("Complex", "Simple")
+simStudyResults$obs_dist_complex_pretty <- simStudyResults$obs_dist_complex
+levels(simStudyResults$obs_dist_complex_pretty) <- c("Complex Emission Distribution", "Simple Emission Distribution")
+
+levels(simStudyResults$time_dep) <- c("No Time Dependence", "Time Dependence")
+
+
+p <- ggplot(simStudyResults, aes(x = fit_method, y = F1_score_macro)) +
+#	geom_point(position = position_jitter(w = 0.2)) +
+	geom_boxplot(fill = "white", outlier.colour = NA) +
+	facet_grid(time_dep ~ obs_dist_complex_pretty) +
+#	scale_y_continuous(lim = c(0, 1), breaks = c(0, 0.2, 0.4, 0.6, 0.8, 1.0), expand = c(0, 0)) +
+#	scale_y_continuous(lim = c(0.7, 1), expand = c(0, 0)) +
+	xlab("Classification Method") +
+	ylab(expression(paste("Macro ", F[1], " Score"))) +
+	theme_bw()# +
+#	theme(axis.text.x = element_text(angle = 70, hjust = 1), text = element_text(size = 18))
+
+grid.newpage()
+pushViewport(viewport(layout = grid.layout(nrow = 2, ncol = 1, heights = unit(c(2 * 1.4, 1), c("lines", "null")))))
+
+suppressWarnings(print(p, vp = viewport(layout.pos.row = 2, layout.pos.col = 1)))
+
+grid.text(expression(paste("Simulation Study Results: Macro ", F[1], " Score by Classification Method")), gp = gpar(fontsize = 16), vp = viewport(layout.pos.row = 1, layout.pos.col = 1))
+@
+
+\caption{Box plots showing the macro $F_1$ score combining precision and recall across all three classes in the simulation study.  A separate box plot is displayed for each combination of the complexity level of the feature emission distributions, the Bayes error rate, and the classification method.  Each point corresponds to a combination of distribution complexity, Bayes error rate, classification method, and simulation index.}
+\label{fig:simStudyResultsBoxplotsf1}
+\end{figure}
+
+
+
+\section{Applications}
+\label{sec:Applications}
+
+Here we present the classification results in the applications, as summarized by the macro $F_1$ score (Supplemental Figure~\ref{fig:applicationResultsPlot}).  With the $F_1$ score, the differences in performance between the dynamic models and the corresponding static models are statistically significant at the $\alpha = 0.05$ level.  The differences in mean $F_1$ score between the generative and discriminative models are not statistically significant or consistent in direction across classification of activity type or intensity.  This is different from the measure of proportion correct discussed in the main manuscript, where discriminative models generally outperformed their static counterparts by a statistically significant margin.  These results are consistent with Supplemental Table~\ref{tbl:detailedResults}, where we present the mean $F_1$ score separately for each combination of response, location, and data set.  Across all of these combinations, the dynamic models tended to achieve higher $F_1$ scores than the static models, and the \textbf{CRF} had the most consistent performance as measured by the $F_1$ score.
+
+\begin{figure}
+<<fitResultsLMEModelF1Macro, cache = FALSE, echo = FALSE>>=
+suppressMessages(suppressWarnings(library("nlme")))
+suppressMessages(suppressWarnings(library("multcomp")))
+# fit mixed effects model with a separate mean for each combination of
+# data set, accelerometer location, response variable and fit method, random effect for subject, and
+# variance specific to combination of subject, data set, response variable, and location
+
+
+combined_results_by_subject <-
+  rbind.fill(
+    ManniniTypeResults %>%
+      mutate(data_set = "Mannini",
+        response = "Type"),
+    ManniniIntensityResults %>%
+      mutate(data_set = "Mannini",
+        response = "Intensity"),
+    SasakiLabTypeResults %>%
+      mutate(data_set = "Sasaki Lab",
+        response = "Type"),
+    SasakiLabIntensityResults %>%
+      mutate(data_set = "Sasaki Lab",
+        response = "Intensity"),
+    SasakiFreeLivingTypeResults %>%
+      mutate(data_set = "Sasaki Free Living",
+        response = "Type"),
+    SasakiFreeLivingIntensityResults %>%
+      mutate(data_set = "Sasaki Free Living",
+        response = "Intensity")
+  ) %>%
+  filter(subject != "Aggregated") %>%
+  mutate(
+    response = factor(response),
+    data_set = factor(data_set),
+    subject = factor(as.integer(as.character(subject))),
+    unique_subject = paste(data_set, as.character(subject), sep = "_"),
+    unique_subject_response = paste(data_set, as.character(subject), sep = "_")
+  )
+
+# results_fit <- lme(fixed = prop_correct ~ location * fit_method * data_set * response,
+# 	random = ~ 1 | subject,
+# #	weights = varIdent(form = ~ 1 | subject * location),
+# #	weights = varIdent(form = ~ 1 | subject * location * data_set * response),
+# 	weights = varIdent(form = ~ 1 | location * fit_method * data_set * response),
+# 	data = combined_results_by_subject,
+# 	control = lmeControl(maxIter = 500, msMaxIter = 500, niterEM = 250, msMaxEval = 2000))
+
+#table(paste(combined_results_by_subject$location, combined_results_by_subject$fit_method, combined_results_by_subject$data_set, combined_results_by_subject$response, combined_results_by_subject$subject))
+
+results_fit <- lme(fixed = F1_score_macro ~ location * fit_method * data_set * response,
+ 	random = ~ 1 | unique_subject,
+#	weights = varIdent(form = ~ 1 | subject * location),
+#	weights = varIdent(form = ~ 1 | subject * location * data_set * response),
+ 	weights = varIdent(form = ~ 1 | location * fit_method * data_set * response),
+ 	data = combined_results_by_subject,
+ 	control = lmeControl(maxIter = 500, msMaxIter = 500, niterEM = 250, msMaxEval = 2000))
+
+# results_fit_3 <- lme(fixed = prop_correct ~ location * fit_method * data_set * response,
+# 	random = ~ 1 | subject/location/fit_method/data_set/response,
+# #	weights = varIdent(form = ~ 1 | subject * location),
+# #	weights = varIdent(form = ~ 1 | subject * location * data_set * response),
+# 	weights = varIdent(form = ~ 1 | location * fit_method * data_set * response),
+# 	data = combined_results_by_subject,
+# 	control = lmeControl(maxIter = 500, msMaxIter = 500, niterEM = 250, msMaxEval = 2000))
+
+
+# # assemble a data frame with residuals and corresponding quantiles for each case
+# ManniniTypeResultsWithResids <- ManniniTypeResults
+# ManniniTypeResultsWithResids$fitted_prop_correct <- fitted(mefit_Mannini_locationmethodint_hetero_subjlocation)
+# ManniniTypeResultsWithResids$residual_prop_correct <- resid(mefit_Mannini_locationmethodint_hetero_subjlocation)
+# ManniniTypeResultsWithResids$standard_residual_prop_correct <- resid(mefit_Mannini_locationmethodint_hetero_subjlocation, type = "pearson")
+# ManniniTypeResultsWithResids$theoretical_quantile_prop_correct <- NA
+# for(loc in levels(ManniniTypeResultsWithResids$location)) {
+# 	ManniniTypeResultsWithResids$theoretical_quantile_prop_correct[ManniniTypeResultsWithResids$location == loc] <-
+# 		qqnorm(ManniniTypeResultsWithResids$residual_prop_correct[ManniniTypeResultsWithResids$location == loc], plot.it = FALSE)$x
+# }
+
+# assemble a data frame with estimates of relevant linear combinations of parameters and CIs.
+# We want estimates for:
+#  - the mean for each combination of location and classification method
+#  - the difference in means between each pair of methods within location
+#  - the difference in means between each location within each method
+unique_fit_methods <- as.character(unique(combined_results_by_subject$fit_method))
+unique_locations <- as.character(unique(combined_results_by_subject$location))
+unique_responses <- as.character(unique(combined_results_by_subject$response))
+unique_data_sets <- as.character(unique(combined_results_by_subject$data_set))
+
+num_fit_methods <- length(unique_fit_methods)
+num_locations <- length(unique_locations)
+num_responses <- length(unique_responses)
+num_data_sets <- length(unique_data_sets)
+
+unique_fit_method_descriptors <- paste0("fit_method", sort(unique_fit_methods))
+unique_location_descriptors <- paste0("location", sort(unique_locations))
+unique_response_descriptors <- paste0("response", sort(unique_responses))
+unique_data_set_descriptors <- paste0("data_set", sort(unique_data_sets))
+
+lc_df <- expand.grid(
+  fit_method = unique_fit_methods,
+  location = unique_locations,
+  response = unique_responses,
+  data_set = unique_data_sets,
+  stringsAsFactors = FALSE)
+
+lc_df$fit_method_descriptor <- paste0("fit_method", lc_df$fit_method)
+lc_df$location_descriptor <- paste0("location", lc_df$location)
+lc_df$response_descriptor <- paste0("response", lc_df$response)
+lc_df$data_set_descriptor <- paste0("data_set", lc_df$data_set)
+lc_df$name <- apply(as.matrix(lc_df[, 1:4]), 1, paste, collapse = "-")
+
+num_leading_cols <- ncol(lc_df)
+coef_cols <- seq(
+  from = num_leading_cols + 1,
+  length = num_fit_methods * num_locations * num_responses * num_data_sets
+)
+
+# corresponding indicator vector for each coefficient
+coef_names <- names(fixef(results_fit))
+unique_coef_name_component_descriptors <- unique(unlist(strsplit(coef_names, ":")))
+intercept_fit_method <- unique_fit_method_descriptors[
+  !(unique_fit_method_descriptors %in% unique_coef_name_component_descriptors)]
+intercept_location <- unique_location_descriptors[
+  !(unique_location_descriptors %in% unique_coef_name_component_descriptors)]
+intercept_response <- unique_response_descriptors[
+  !(unique_response_descriptors %in% unique_coef_name_component_descriptors)]
+intercept_data_set <- unique_data_set_descriptors[
+  !(unique_data_set_descriptors %in% unique_coef_name_component_descriptors)]
+for(coef_ind in seq(from = 1, to = length(coef_names))) {
+	split_name <- unlist(strsplit(coef_names[[coef_ind]], ":"))
+	if(!any(split_name %in% unique_fit_method_descriptors[unique_fit_method_descriptors != intercept_fit_method])) {
+		split_name <- c(split_name, unique_fit_method_descriptors)
+	}
+	if(!any(split_name %in% unique_location_descriptors[unique_location_descriptors != intercept_location])) {
+		split_name <- c(split_name, unique_location_descriptors)
+	}
+	if(!any(split_name %in% unique_response_descriptors[unique_response_descriptors != intercept_response])) {
+		split_name <- c(split_name, unique_response_descriptors)
+	}
+	if(!any(split_name %in% unique_data_set_descriptors[unique_data_set_descriptors != intercept_data_set])) {
+		split_name <- c(split_name, unique_data_set_descriptors)
+	}
+	
+	lc_df[[paste0("coef", coef_ind)]] <- 0
+	lc_df[[paste0("coef", coef_ind)]][
+	  lc_df$fit_method_descriptor %in% split_name &
+		lc_df$location_descriptor %in% split_name &
+	  lc_df$response_descriptor %in% split_name &
+	  lc_df$data_set_descriptor %in% split_name] <- 1
+}
+
+# contrasts averaging estimated means across
+# all three data sets and both accelerometer locations,
+# within response and fit method.
+rowind <- nrow(lc_df) # index of new row to add to lc_df
+confint_rows <- c() # rows for which to compute confidence intervals
+for(fit_method in unique_fit_methods) {
+  for(response in unique_responses) {
+  	rowind <- rowind + 1
+  	confint_rows <- c(confint_rows, rowind)
+	  
+  	rows_to_average <- which(lc_df$fit_method == fit_method & lc_df$response == response)
+  	lc_df[rowind, ] <- rep(NA, ncol(lc_df))
+	  
+  	lc_df$name[rowind] <- paste0(fit_method, "-", response)
+  	lc_df$fit_method[rowind] <- fit_method
+  	lc_df$response[rowind] <- response
+  	lc_df[rowind, coef_cols] <- apply(lc_df[rows_to_average, coef_cols], 2, mean)
+  }
+}
+
+## contrasts of
+## (mean performance CRF across data set and location) - (mean performance for each other method across data set and location),
+## within response (type/intensity)
+for(fit_method in unique_fit_methods[unique_fit_methods != "CRF"]) {
+  for(response in unique_responses) {
+    rowind <- rowind + 1
+  	confint_rows <- c(confint_rows, rowind)
+	  
+    crf_rowind <- which(lc_df$name == paste0("CRF", "-", response))
+    alt_rowind <- which(lc_df$name == paste0(fit_method, "-", response))
+    
+  	lc_df[rowind, ] <- rep(NA, ncol(lc_df))
+    lc_df$name[rowind] <- paste0("CRF", "-", fit_method, "-", response)
+  	lc_df$response[rowind] <- response
+  	lc_df[rowind, coef_cols] <- lc_df[crf_rowind, coef_cols] - lc_df[alt_rowind, coef_cols]
+  }
+}
+
+lc_df$name <- factor(lc_df$name, levels = lc_df$name)
+
+K_mat <- as.matrix(lc_df[, coef_cols])
+
+# get point estimates
+lc_df$pt_est <- as.vector(K_mat %*% matrix(fixef(results_fit)))
+
+# get familywise CIs
+lc_df$fam_CI_lb <- NA
+lc_df$fam_CI_ub <- NA
+fam_CI_obj <- glht(results_fit, linfct = K_mat[confint_rows, ])
+temp <- confint(fam_CI_obj)$confint
+lc_df$fam_CI_lb[confint_rows] <- temp[, 2]
+lc_df$fam_CI_ub[confint_rows] <- temp[, 3]
+
+# get individual CIs
+lc_df$ind_CI_lb <- NA
+lc_df$ind_CI_ub <- NA
+for(rowind in confint_rows) {
+	ind_CI_obj <- glht(results_fit, linfct = K_mat[rowind, , drop = FALSE])
+	temp <- confint(ind_CI_obj)$confint
+	lc_df$ind_CI_lb[rowind] <- temp[, 2]
+	lc_df$ind_CI_ub[rowind] <- temp[, 3]
+}
+
+
+summary_figure_df <-
+  lc_df[61:70, c("fit_method", "response", "pt_est", "fam_CI_lb", "fam_CI_ub", "ind_CI_lb", "ind_CI_ub")] %>%
+  mutate(fit_method = factor(fit_method, levels = c("CRF", "HMM", "MLR", "FMM", "RF")))
+
+ggplot(summary_figure_df) +
+  geom_point(aes(x = fit_method, y = pt_est)) +
+  geom_errorbar(aes(x = fit_method, ymin = fam_CI_lb, ymax = fam_CI_ub)) +
+  facet_wrap(~ response, nrow = 1) +
+  xlab("Classification Model") +
+  ylab("Macro F1 Score") +
+ 	scale_y_continuous(limits = c(0.5, 1), expand = c(0, 0)) +
+  theme_bw()
+@
+\caption{Results from activity type and intensity classification tasks in data from \citet{mannini2013activityrecognition} and \citet{sasaki2016ActivityClassificationOlder}, averaged across the three data sets and two accelerometer locations.  The joint confidence intervals are from a linear mixed effects model and have a familywise confidence level of 95\%.}
+\label{fig:applicationResultsPlot}
+\end{figure}
+
+\begin{table*}
+\centering
+\begin{tabular} {c c c c c c c c}
+\toprule
+Response & Location & Data Set & CRF & HMM & MLR & FMM & RF \\
+\midrule
+<<ApplicationResultsTableF1Macro, echo = FALSE, results = "asis">>=
+results_table <- lc_df %>%
+  dplyr::select(response, location, fit_method, data_set, pt_est) %>%
+  dplyr::filter(!is.na(location)) %>%
+  spread(fit_method, pt_est)
+
+results_table <- results_table[, c("response", "location", "data_set", "CRF", "HMM", "MLR", "FMM", "RF")]
+for(i in seq_len(nrow(results_table))) {
+  for(j in seq_len(ncol(results_table))) {
+    if(j <= 3) {
+      cat(results_table[i, j])
+      cat(" & ")
+    } else {
+      if(results_table[i, j] == max(results_table[i, 4:8])) {
+        cat("\\textbf{")
+        cat(sprintf("%.3f", round(results_table[i, j], 3)))
+        cat("}")
+      } else {
+        cat(sprintf("%.3f", round(results_table[i, j], 3)))
+      }
+      
+      if(j < 8) {
+        cat(" & ")
+      } else {
+        cat(" \\\\\n")
+      }
+    }
+  }
+}
+@
+\bottomrule
+\end{tabular}
+\caption{Estimated mean macro $F_1$ score for the activity type and intensity classification tasks in data from \cite{mannini2013activityrecognition} and \cite{sasaki2016ActivityClassificationOlder} by response variable, accelerometer location and data set.}
+\label{tbl:detailedResults}
+\end{table*}
+
+
+The confidence intervals displayed in Figure 3 of the main manuscript and Supplemental Figure~\ref{fig:applicationResultsPlot}, as well as the hypothesis test results discussed throughout the text, were obtained using linear mixed effects models with the following specification:
+\begin{eqnarray*}
+y_{r,l,d,c,s} & = & \mu_{r,l,d,c} + \alpha_{d|s} + \varepsilon_{r,l,d,c,s} \label{eqn:lmeOverall} \\
+\alpha_{d|s} & \sim & N(0, \sigma^2_s) \label{eqn:lmeRE} \\
+\varepsilon_{r,l,d,c,s} & \sim & N(0, \xi^2_{r,l,d,c}) \label{eqn:lmeVar}
+\end{eqnarray*}
+
+In this notation $y_{r,l,d,c,s}$ is a measure of classifier quality (either proportion correct or macro $F_1$ score) for one instance, indexed by $r$ denoting the response (activity type or activity intensity), $l$ denoting the accelerometer location (ankle or wrist), $d$ denoting the data set (Mannini, Sasaki Free Living, or Sasaki Lab), $c$ denoting the classifier (\textbf{CRF}, \textbf{HMM}, \textbf{MLR}, \textbf{FMM}, \textbf{RF}), and $s$ denoting the subject within each study.  The $\alpha_{d|s}$ term is a random effect for each subject; the notation $d|s$ emphasizes that we treat the subjects in different data sets separately for the purpose of this model, even though the subjects in the Sasaki Free Living data set also participated in the Sasaki Lab data collection.  The error term, $\varepsilon_{r,l,d,c,s}$, has a separate variance for each combination of response, location, data set, and classifier.  We fit a separate model for each measure of classifier quality using the {\tt nlme} package \citep{nlmeRPackage} in {\tt R} \citep{RCore}.  For each measure of classifier quality, we conducted all hypothesis tests simultaneously with construction of the confidence intervals in Figure 3 of the manuscript and Supplemental Figure~\ref{fig:applicationResultsPlot} in this document using the {\tt multcomp} package \citep{multcompRPackage} for {\tt R}.
+
+
+\newpage
+
+\bibliographystyle{plainnat}
+\bibliography{HMMbib}
+
+
+
+\end{document}
