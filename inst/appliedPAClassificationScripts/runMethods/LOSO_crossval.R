@@ -33,6 +33,8 @@ library("snowfall")
 
 if(fit_method %in% c("normalHMM", "normalFMM", "RF")) {
 	sfInit(parallel = FALSE, cpus = 1, type = "SOCK")
+} else if(fit_method %in% "parametricBoostMLR") {
+    sfInit(parallel = TRUE, cpus = 16, type = "SOCK")
 } else {
 	sfInit(parallel = TRUE, cpus = 50, type = "SOCK")
 #    sfInit(parallel = FALSE, cpus = 1, type = "SOCK")

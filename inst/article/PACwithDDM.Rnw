@@ -1,8 +1,8 @@
-\documentclass[12pt]{article}
+\documentclass[useAMS,usenatbib,referee]{biom}
 
 \usepackage{verbatim,color,amssymb,epsfig}
-\usepackage{amsthm}
-\usepackage{natbib}
+%\usepackage{amsthm}
+%\usepackage{natbib}
 \usepackage[usenames,dvipsnames]{xcolor}
 \usepackage{fancyhdr}
 
@@ -14,23 +14,25 @@
 \usepackage{listings}
 \usepackage{float}
 
+%\usepackage[nomarkers]{endfloat}
+
 \newcommand{\lbl}[1]{\label{#1}{\fbox{\tiny\upshape#1}}}
 %\newcommand{\lbl}[1]{\label{#1}}
 
-\setlength{\textheight}{9in}
-\setlength{\textwidth}{6.5in}
-\setlength{\topmargin}{-36pt}
-\setlength{\oddsidemargin}{0pt}
-\setlength{\evensidemargin}{0pt}
-\tolerance=500
-\renewcommand{\baselinestretch}{1.5}
+%\setlength{\textheight}{9in}
+%\setlength{\textwidth}{6.5in}
+%\setlength{\topmargin}{-36pt}
+%\setlength{\oddsidemargin}{0pt}
+%\setlength{\evensidemargin}{0pt}
+%\tolerance=500
+%\renewcommand{\baselinestretch}{1.5}
 
 
 \include{GrandMacros}
 \newcommand{\norm}[1]{\vert\vert #1 \vert\vert}
 \newcommand{\ind}{\mathbb{I}}
 
-\theoremstyle{plain}
+%\theoremstyle{plain}
 \newtheorem{algorithm}{Algorithm}
 
 \newfloat{AlgorithmWrapper}{tbp}{lop}
@@ -68,61 +70,81 @@ color_palette11_wl <- c("#7f3b08", "#b35806", "#e08214", "#fdb863", "#fee0b6", "
 
 %\numberwithin{equation}{section}
 
+\title[Physical Activity Classification with Dynamic, Discriminative Methods]{Physical Activity Classification with Dynamic, Discriminative Methods}
+
+\author{Evan L. Ray$^{1,*}$\email{elray@umass.edu}, 
+Jeffer E. Sasaki$^{2}$,
+Patty S. Freedson$^{3}$,
+and John Staudenmayer$^{4}$ \\
+$^{1}$Department of Biostatistics and Epidemiology, University of Massachusetts, \\
+Amherst, Massachusetts, U.S.A. \\
+$^{2}$Graduate Program in Physical Education, Universidade Federal do Triangulo Mineiro, \\
+Uberaba, Minas Gerais, Brazil \\
+$^{3}$Department of Kinesiology, University of Massachusetts, \\
+Amherst, Massachusetts, U.S.A. \\
+$^{1}$Department of Mathematics and Statistics, University of Massachusetts, \\
+Amherst, Massachusetts, U.S.A.}
+
 \begin{document}
 %\SweaveOpts{concordance=TRUE}
 
-\thispagestyle{empty}
-\begin{center}
-{\LARGE{\bf  Physical Activity Classification with Dynamic, Discriminative Methods}}
-\end{center}
-\baselineskip=12pt
+\date{{\it Received October} 2007. {\it Revised February} 2008.  {\it
+Accepted March} 2008.}
 
-\vskip 10mm
-\begin{center}
-Evan Ray\\
-Department of Mathematics and Statistics, University of Massachusetts, \\
-Amherst, MA 01003-9305, USA \\
-Evan.L.Ray@gmail.com\\
-\hskip 5mm \\
-Jeffer Sasaki\\
-Graduate Program in Physical Education, Universidade Federal do Triangulo Mineiro, \\
-Uberaba, Minas Gerais, Brazil \\
-\hskip 5mm \\
-Patty Freedson\\
-Department of Kinesiology, University of Massachusetts, \\
-Amherst, MA 01003-9305, USA \\
-\hskip 5mm \\
-John Staudenmayer\\
-Department of Mathematics and Statistics, University of Massachusetts, \\
-Amherst, MA 01003-9305, USA \\
-\end{center}
+%  These options will count the number of pages and provide volume
+%  and date information in the upper left hand corner of the top of the 
+%  first page as in published papers.  The \pagerange command will only
+%  work if you place the command \label{firstpage} near the beginning
+%  of the document and \label{lastpage} at the end of the document, as we
+%  have done in this template.
 
+%  Again, putting a volume number and date is for your own amusement and
+%  has no bearing on what actually happens to your paper!  
 
+\pagerange{\pageref{firstpage}--\pageref{lastpage}} 
+\volume{64}
+\pubyear{2008}
+\artmonth{December}
 
+%  The \doi command is where the DOI for your paper would be placed should it
+%  be published.  Again, if you make one up and stick it here, it means 
+%  nothing!
 
+\doi{10.1111/j.1541-0420.2005.00454.x}
 
-\vskip 10mm
-\begin{center}
-{\Large{\bf Abstract}}
-\end{center}
-\baselineskip=12pt
-A person's physical activity has important health implications, so it is important to be able to measure aspects of physical activity objectively. One approach to doing that is to use data from an accelerometer to classify physical activity according to either activity type (e.g., lying down, sitting, standing, or walking) or intensity (e.g., sedentary, light, moderate, or vigorous).  This can be formulated as a labeled classification problem, where the classification model relates a feature vector summarizing the accelerometer signal in a window of time to the activity type or intensity in that window.  These data exhibit two key characteristics: (1) the activity classes in different time windows are not independent, and (2) the accelerometer features have moderately high dimension and follow complex distributions.  Through a simulation study and applications to three data sets, we demonstrate that the classification performance of a particular model is related to how it addresses each of these aspects of the data.  Dynamic methods that account for temporal dependence in the activity class achieve better classification performance than static methods that do not.  Generative methods that explicitly model the distribution of the accelerometer signal features do not perform as well as methods that take a discriminative approach to establishing the relationship between the accelerometer signal and the activity class.  Specifically, we find that Conditional Random Fields (CRFs) consistently achieve better classification results than commonly employed methods for physical activity classification that ignore temporal dependence or attempt to model the distribution of the accelerometer features.
-\baselineskip=12pt
-\par\vfill\noindent
-\underline{\bf Key Words}:
+%  This label and the label ``lastpage'' are used by the \pagerange
+%  command above to give the page range for the article.  You may have 
+%  to process the document twice to get this to match up with what you 
+%  expect.  When using the referee option, this will not count the pages
+%  with tables and figures.  
+
+\label{firstpage}
+
+%  put the summary for your paper here
+
+\begin{abstract}
+A person's physical activity has important health implications, so it is important to be able to measure aspects of physical activity objectively. One approach to doing that is to use data from an accelerometer to classify physical activity according to activity type (e.g., lying down, sitting, standing, or walking) or intensity (e.g., sedentary, light, moderate, or vigorous).  This can be formulated as a labeled classification problem, where the model relates a feature vector summarizing the accelerometer signal in a window of time to the activity type or intensity in that window.  These data exhibit two key characteristics: (1) the activity classes in different time windows are not independent, and (2) the accelerometer features have moderately high dimension and follow complex distributions.  Through a simulation study and applications to three data sets, we demonstrate that a model's classification performance is related to how it addresses these aspects of the data.  Dynamic methods that account for temporal dependence achieve better performance than static methods that do not.  Generative methods that explicitly model the distribution of the accelerometer signal features do not perform as well as methods that take a discriminative approach to establishing the relationship between the accelerometer signal and the activity class.  Specifically, Conditional Random Fields consistently have better performance than commonly employed methods that ignore temporal dependence or attempt to model the accelerometer features.
+\end{abstract}
+
+%  Please place your key words in alphabetical order, separated
+%  by semicolons, with the first letter of the first word capitalized,
+%  and a period at the end of the list.
+%
+
+\begin{keywords}
 Accelerometers; Classification; Conditional Random Field; Hidden Markov Model; Physical Activity.
+\end{keywords}
 
+%  As usual, the \maketitle command creates the title and author/affiliations
+%  display 
 
-\clearpage\pagebreak\newpage
-\pagenumbering{arabic}
-\newlength{\gnat}
-\setlength{\gnat}{22pt}
-\baselineskip=\gnat
+\maketitle
+
 
 \section{Introduction}
 \label{sec:Intro}
 
-The United States Department of Health and Human Services published the 2008 Physical Activity Guidelines (\citet{DHHS2008PAGuidelines}) recommending that adults accumulate at least 2 hours and 30 minutes of moderate intensity physical activity each week and that this activity should occur in continuous bouts of at least 10 minutes. These recommendations are based on a large literature review which found that increased physical activity leads to a reduction in all-cause mortality risk, weight-loss, prevention of certain types of cancer, and improvements in cardiorespiratory, metabolic, musculoskeletal, functional and mental health. To understand the dose response relationships between physical activity and aspects of health more precisely and to assess the effects of interventions to increase physical activity, it is important to be able to accurately measure physical activity.
+The United States Department of Health and Human Services published the 2008 Physical Activity Guidelines \citep{DHHS2008PAGuidelines} recommending that adults accumulate at least 2 hours and 30 minutes of moderate intensity physical activity each week and that this activity should occur in continuous bouts of at least 10 minutes. These recommendations are based on a large literature review which found that increased physical activity leads to a reduction in all-cause mortality risk, weight-loss, prevention of certain types of cancer, and improvements in cardiorespiratory, metabolic, musculoskeletal, functional and mental health. To understand the dose response relationships between physical activity and aspects of health more precisely and to assess the effects of interventions to increase physical activity, it is important to be able to accurately measure physical activity.
 
 One approach to the objective measurement of physical activity is through the use of an accelerometer worn by the individual.  The accelerometer records the acceleration that it experiences in each of three axes at a high frequency; measurements were recorded at frequencies of 80 to 90 Hz in the data sets we work with in this article. These acceleration recordings do not directly measure the quantities of interest.  Instead, statistical models must be used to infer descriptions of physical activity type or intensity from the accelerometer signal.
 
@@ -387,28 +409,28 @@ make_one_signal_classification_plot(signal_var = "reduced_vm", class_var = "redu
 \label{fig:dataCharacteristics}
 \end{figure}
 
-The Metabolic Equivalent of Task (MET) is a body-size independent measure of energy expenditure. One MET is the energy used by an individual at rest, and the energy expenditure of other activities is expressed as multiples of this resting rate (\citet{ainsworth2011}). For ease of interpretation, METs are often discretized into four levels of energy expenditure that define categories of exercise intensity: Sedentary ($\leq 1.5$ METs), Light ($> 1.5$ and $< 3$ METs), Moderate ($\geq 3$ and $< 6$ METs), and Vigorous ($\geq 6$ METs).
+The Metabolic Equivalent of Task (MET) is a body-size independent measure of energy expenditure. One MET is the energy used by an individual at rest, and the energy expenditure of other activities is expressed as multiples of this resting rate \citep{ainsworth2011}. For ease of interpretation, METs are often discretized into four levels of energy expenditure that define categories of exercise intensity: Sedentary ($\leq 1.5$ METs), Light ($> 1.5$ and $< 3$ METs), Moderate ($\geq 3$ and $< 6$ METs), and Vigorous ($\geq 6$ METs).
 
-Simple linear regression is the most prevalent way to estimate METs from an accelerometer. This approach relates a univariate summary of the total acceleration magnitude in non-overlapping time intervals (referred to as \textit{counts} and often considered per minute window) to METs (e.g., \citet{freedson1998calibration}). While the relationship between counts and METs is approximately linear during locomotion, METs are not a mathematical function of counts when the wearer of the accelerometer does a variety of activities. For instance, activities with similar intensities may have quite different counts, and activities with different intensities may have similar counts (\citet{staudenmayer2009ANNforEEandAC}).
+Simple linear regression is the most prevalent way to estimate METs from an accelerometer. This approach relates a univariate summary of the total acceleration magnitude in non-overlapping time intervals (referred to as \textit{counts} and often considered per minute window) to METs \citep[e.g. ][]{freedson1998calibration}. While the relationship between counts and METs is approximately linear during locomotion, METs are not a mathematical function of counts when the wearer of the accelerometer does a variety of activities. For instance, activities with similar intensities may have quite different counts, and activities with different intensities may have similar counts \citep{staudenmayer2009ANNforEEandAC}.
 
-These problems can be partially remedied by using a richer summary of the acceleration signal and a more flexible regression model for the relationship between the accelerometer signal and activity intensity (e.g. \citet{rothney2007ANNforEE} and \citet{staudenmayer2009ANNforEEandAC}). Another common option is to use separate models for different types of activity (\citet{crouter2006EE, lyden2014sojourn, bonomi2009EEEbyusingAC, albinali2010usingACforEE, lester2009EEE}). We note that these methods are all static in the sense that regression models are applied to different windows independently.
+These problems can be partially remedied by using a richer summary of the acceleration signal and a more flexible regression model for the relationship between the accelerometer signal and activity intensity \citep[e.g. ][]{rothney2007ANNforEE, staudenmayer2009ANNforEEandAC}. Another common option is to use separate models for different types of activity \citep{crouter2006EE, lyden2014sojourn, bonomi2009EEEbyusingAC, albinali2010usingACforEE, lester2009EEE}. We note that these methods are all static in the sense that regression models are applied to different windows independently.
 
-At the expense of not estimating total energy expenditure, it is also possible to bypass the initial regression step and classify physical activity intensity directly.  If this strategy is used, the same modeling tools can be used to classify activity type (what the person is actually doing) or intensity. Many static and discriminative classification methods have been applied to these problems, including support vector machines (\citet{anderson2013changepointHMM, gyllensten2011evaluatelabalgsinreallife, mannini2013activityrecognition, ravi2005activityrecognition, zhang2012ACusingGENEA, zheng2013ACmultiscaleensemble}), classification trees (\citet{albinali2010usingACforEE, anderson2013changepointHMM, bao2004ACuserannotated, bonomi2009detection, bonomi2009EEEbyusingAC, gyllensten2011evaluatelabalgsinreallife, mathie2004classification, ravi2005activityrecognition, zhang2012ACusingGENEA}), artificial neural networks (\citet{anderson2013changepointHMM, devries2011evaluationofNNforAC, ermes2008detection, gyllensten2011evaluatelabalgsinreallife, staudenmayer2009ANNforEEandAC, zhang2012ACusingGENEA}), and nearest neighbors (\citet{bao2004ACuserannotated, foerster1999detectionofACvalidation, ravi2005activityrecognition}), among others.
+At the expense of not estimating total energy expenditure, it is also possible to bypass the initial regression step and classify physical activity intensity directly.  If this strategy is used, the same modeling tools can be used to classify activity type (what the person is actually doing) or intensity. Many static and discriminative classification methods have been applied to these problems, including support vector machines \citep{anderson2013changepointHMM, gyllensten2011evaluatelabalgsinreallife, mannini2013activityrecognition, ravi2005activityrecognition, zhang2012ACusingGENEA, zheng2013ACmultiscaleensemble}, classification trees \citep{albinali2010usingACforEE, anderson2013changepointHMM, bonomi2009detection, bao2004ACuserannotated, bonomi2009EEEbyusingAC, gyllensten2011evaluatelabalgsinreallife, mathie2004classification, ravi2005activityrecognition, zhang2012ACusingGENEA}, artificial neural networks \citep{anderson2013changepointHMM, devries2011evaluationofNNforAC, ermes2008detection, gyllensten2011evaluatelabalgsinreallife, staudenmayer2009ANNforEEandAC, zhang2012ACusingGENEA}, and nearest neighbors \citep{bao2004ACuserannotated, foerster1999detectionofACvalidation, ravi2005activityrecognition}, among others.
 
-Previous papers have suggested that models that account for temporal dependence might have better classification accuracy than models that do not (e.g., \citet{gyllensten2011evaluatelabalgsinreallife, mannini2010machinelearningforAC, bao2004ACuserannotated}). To our knowledge no previous study has directly examined the impact of this characteristic of the model on classification performance with real physical activity data.
+Previous papers have suggested that models that account for temporal dependence might have better classification accuracy than models that do not \citep[e.g. ][]{gyllensten2011evaluatelabalgsinreallife, mannini2010machinelearningforAC, bao2004ACuserannotated}. To our knowledge no previous study has directly examined the impact of this characteristic of the model on classification performance with real physical activity data.
 
 Hidden Markov models (HMMs) are generative dynamic models that provide one way to model temporal dependence. A straightforward way to use HMMs for physical activity data is to represent the true activity class by the hidden state, which is modeled as changing over time according to a Markov process.  The observed acceleration features follow a distribution that depends on the state.  This setup was used by \citet{mannini2010machinelearningforAC}.  \citet{poberetal:ClassifyPA} used the same general idea but employed a HMM that assigned three hidden states to each activity class.
 
-The difficulty with this approach is that it requires us to estimate the distribution of the accelerometer features associated with each hidden state.  Applied studies and theoretical results have shown that classification performance of generative models such as HMMs suffers when the model is badly misspecified, and discriminative approaches may be preferred in these cases (e.g., \citet{NgJordanDiscriminativeVsGenerative, nadas1988modelrobusttrainingHMM, xue2008commentNgJordan}).
+The difficulty with this approach is that it requires us to estimate the distribution of the accelerometer features associated with each hidden state.  Applied studies and theoretical results have shown that classification performance of generative models such as HMMs suffers when the model is badly misspecified, and discriminative approaches may be preferred in these cases \citep[e.g. ][]{NgJordanDiscriminativeVsGenerative, nadas1988modelrobusttrainingHMM, xue2008commentNgJordan}.
 
 A second approach to using HMMs is to first use a discriminative model that does not incorporate temporal dependence, such as a support vector machine or random forest, to obtain an initial classification, and then use a HMM to smooth those initial classifications over time.  Variations on this idea have been used by \citet{lester2005hybridHMMforPA}, \citet{anderson2013changepointHMM} and \citet{EllisPARecognitionHMMSmoothRF}.  \citet{mcshane2013learningwithTSDependence} developed a more formally justified variation on this theme in the context of classifying sleep type in mice with video recordings. Their work re-expresses the HMM in terms of the class membership probabilities that are obtained from a static non-parametric classification model.  This approach combines the benefits of using a discriminative approach for relating the feature vectors to the activity classes with the temporal dependence structure of the HMM.
 
-The Conditional Random Field (CRF) is another discriminative approach that can capture temporal dependence.  The CRF was originally proposed in the computer science literature by \citet{lafferty2001CRF} and has been applied to a variety of problems, including part-of-speech tagging (\citet{lafferty2001CRF}) and gene prediction (\citet{bernal2007CRFgenes}) among many others.  Two previous studies have applied CRFs to classification of physical activity with accelerometer data, although their specific classification tasks were fairly different from the tasks that are of interest to public health researchers studying the effectiveness of interventions designed to increase physical activity levels and the links between physical activity and health (\citet{vinh2011semimarkovCRFforPArecognition, adams2016hierarchicalCRF}).  The CRF model uses a graphical structure to represent the conditional independence relationships among the activity classes at different times.  It can be shown that the model that results from conditioning on the observed features in the HMM is a special case of the CRF (\citet{lafferty2001CRF, sutton2011introductionCRF}).
+The Conditional Random Field (CRF) is another discriminative approach that can capture temporal dependence.  The CRF was originally proposed in the computer science literature by \citet{lafferty2001CRF} and has been applied to a variety of problems, including part-of-speech tagging \citep{lafferty2001CRF} and gene prediction \citep{bernal2007CRFgenes} among many others.  Two previous studies have applied CRFs to classification of physical activity with accelerometer data, although their specific classification tasks were fairly different from the tasks that are of interest to public health researchers studying the effectiveness of interventions designed to increase physical activity levels and the links between physical activity and health \citep{vinh2011semimarkovCRFforPArecognition, adams2016hierarchicalCRF}.  The CRF model uses a graphical structure to represent the conditional independence relationships among the activity classes at different times.  It can be shown that the model that results from conditioning on the observed features in the HMM is a special case of the CRF \citep{lafferty2001CRF, sutton2011introductionCRF}.
 
 \section{Classification Methods}
 \label{sec:Models}
 
-First, we introduce notation. We denote the acceleration feature vector in window $t$ for subject $i$ by $\bX_{i, t} \in \mathbb{R}^D$, and the activity type or intensity by $Y_{i, t} \in \{1, \ldots, S\}$.  Here $S$ is the total number of activity type or intensity levels, which varies with the data set.  We let $N$ denote the total number of subjects and $T_i$ denote the number of windows for subject $i$.  In our applications in Section \ref{sec:Applications}, we use either $D=13$ or $D=77$ features depending on the data set.  All of these features are listed in Appendix \ref{sec:appendix:2}. Discussion of the advantages and disadvantages of specific features is outside the scope of this article.
+First, we introduce notation. We denote the acceleration feature vector in window $t$ for subject $i$ by $\bX_{i, t} \in \mathbb{R}^D$, and the activity type or intensity by $Y_{i, t} \in \{1, \ldots, S\}$.  Here $S$ is the total number of activity type or intensity levels, which varies with the data set.  We let $N$ denote the total number of subjects and $T_i$ denote the number of windows for subject $i$.  In our applications in Section \ref{sec:Applications}, we use either $D=13$ or $D=77$ features depending on the data set; we list the features used in Section \ref{sec:Applications}. Discussion of the advantages and disadvantages of specific features is outside the scope of this article.
 
 Our first four classification methods are a finite mixture model (\textbf{FMM}), hidden Markov model (\textbf{HMM}), multinomial logistic regression (\textbf{MLR}), and a conditional random field (\textbf{CRF}).  The specifications of these models that we use are closely related to each other, and together they cover all four combinations of the static/dynamic and generative/discriminative model characteristics.  The \textbf{FMM} is a static generative model; the \textbf{HMM} is dynamic generative model that can be obtained by adding temporal dependence to the \textbf{FMM}; \textbf{MLR} is a static discriminative model that can be obtained from a restricted version of the \textbf{FMM} by conditioning on the observed accelerometer features rather than modeling their distribution; and the \textbf{CRF} is a dynamic discriminative model that can be obtained either by adding temporal dependence to \textbf{MLR} or by conditioning on the accelerometer features in a restricted version of the \textbf{HMM}.
 
@@ -445,7 +467,55 @@ Our final classification method is a random forest (\textbf{RF}, \citet{breiman2
 
 We employ similar estimation strategies for the two generative models and for the two discriminative models.  The \textbf{HMM} has parameters $\btheta = (\bpi, Q, \bw, \bmu, \bSigma)$, where $\bpi = (\pi_1, \ldots, \pi_S)$, $Q = [q_{r, s}]$, and $\bw$, $\bmu$, and $\bSigma$ contain the parameters for all mixture components; the FMM has similar parameters, but does not include the transition matrix $Q$.  For the \textbf{HMM}, we estimate $Q$ via maximum likelihood.  We estimate $\bpi_s$ as the observed proportion of the sample with $y_{i, t} = s$.  This is the maximum likelihood estimate for the \textbf{FMM}; it is not the maximum likelihood estimate for the \textbf{HMM}, but use of this estimate is a standard procedure to reduce sampling variance of the estimates (e.g., \citet{mcshane2013learningwithTSDependence}).  For the observation distributions, we use {\tt R}'s {\tt mclust} package \citep{Fraley2012mclust} to estimate the mixture weights $\bw$ and the parameters $\bmu$ and $\bSigma$ of the normal mixture components.  This package allows for a number of possible restrictions on the parameterizations of the normal component covariance matrices.  It uses an EM algorithm to obtain local maximum likelihood estimates of the normal component parameters, and BIC to select the covariance parameterization and number of components.  Before fitting the model, we apply the Yeo-Johnson transformation \citep{yeo2000powertransform} to each covariate to approximate normality. We use the implementation of this transformation that is available in the {\tt car} package \citep{Fox2011CAR} for {\tt R}.
 
-Our estimation algorithm for the \textbf{MLR} and \textbf{CRF} models employs bagging and boosting.  In the bagging step we generate many different training data sets by drawing observation sequences with replacement from the full set of all observation sequences (note that this same technique is used in the estimation of random forests).  In the final model fit, the coefficient estimates $\zeta_s$, $\omega_{r, s}$, and $\beta_{s, d}$ are the average of the coefficient estimates obtained from separate model fits to each of these bagged data sets.  We use a boosting procedure to obtain these separate model fits.  The boosting step can be interpreted as a random block coordinate ascent algorithm converging to the maximum likelihood parameter estimates based on the given training data set, with early stopping used to reduce overfitting.  We use estimates of classification performance on the out-of-bag observation sequences to select the stopping point for the boosting procedure.  The precise estimation algorithm is in Appendix \ref{sec:appendix:bbparalg}.  Similar estimation strategies for CRFs have been employed previously (e.g., \citet{smith2007diversityinLOPs, DietterichTrainingCRFviaTreeBoosting}).  In order to resolve problems with identifiability, we fix $\zeta_S = 0$, $\omega_{S, S} = 0$, and $\beta_{S, d'} = 0 \, \forall d' = 0, \ldots, D$.
+Our estimation algorithm for the \textbf{MLR} and \textbf{CRF} models employs bagging and boosting.  In the bagging step we generate many different training data sets by drawing observation sequences with replacement from the full set of all observation sequences (note that this same technique is used in the estimation of random forests).  In the final model fit, the coefficient estimates $\zeta_s$, $\omega_{r, s}$, and $\beta_{s, d}$ are the average of the coefficient estimates obtained from separate model fits to each of these bagged data sets.  We use a boosting procedure to obtain these separate model fits.  The boosting step can be interpreted as a random block coordinate ascent algorithm converging to the maximum likelihood parameter estimates based on the given training data set, with early stopping used to reduce overfitting.  We use estimates of classification performance on the out-of-bag observation sequences to select the stopping point for the boosting procedure.  The precise estimation procedure is given in Algorithm \ref{alg:CRFmodel1Est}.  Similar estimation strategies for CRFs have been employed previously (e.g., \citet{smith2007diversityinLOPs, DietterichTrainingCRFviaTreeBoosting}).  In order to resolve problems with identifiability, we fix $\zeta_S = 0$, $\omega_{S, S} = 0$, and $\beta_{S, d'} = 0 \, \forall d' = 0, \ldots, D$.
+
+\begin{AlgorithmWrapper}[!hp]
+\begin{minipage}{\textwidth}
+\baselineskip=12pt
+\begin{algorithm}{\textbf{CRF} Estimation Algorithm} \label{alg:CRFmodel1Est}
+
+\vspace{0.05cm}
+\textbf{Method:} \textbf{estimate\_CRF} \\
+\textbf{Inputs:} Labeled data $\{(\by_i, \bx_i), \, i = 1, \ldots, N\}$ \\
+\textbf{Outputs:} \textbf{CRF} parameter estimates.
+\begin{enumerate}
+\item Initialize all parameter estimates $\widehat{\bzeta}$, $\widehat{\bomega}$, and $\widehat{\bbeta}$ to $\b0$.
+\item For $b = 1, \ldots, M_{bag}$, repeat the following:
+	\begin{enumerate}
+	\item Draw a sample of $N$ observation sequences with replacement from the set of all observation sequences.  Collect the sampled sequences in $\mathcal{B}^{b}$ and the unsampled sequences in $\mathcal{O}^{b}$. \label{alg:CRFmodel1AlgBag}
+	\item Call \textbf{boost\_CRF}$(\mathcal{B}^{b}, \mathcal{O}^{b})$; the return value is the vector $(\widehat{\bzeta}^b, \widehat{\bomega}^b, \widehat{\bbeta}^b)$. \label{alg:CRFmodel1AlgCallBoost}
+	\item Set $\widehat{\bzeta} = \widehat{\bzeta} + \frac{1}{M_{bag}} \widehat{\bzeta}^b$, $\widehat{\bomega} = \widehat{\bomega} + \frac{1}{M_{bag}} \widehat{\bomega}^b$, and $\widehat{\bbeta} = \widehat{\bbeta} + \frac{1}{M_{bag}} \widehat{\bbeta}^b$. \label{alg:CRFmodel1AlgCombineComponents}
+	\end{enumerate}
+\item Return the combined parameter estimates $(\widehat{\bzeta}, \widehat{\bomega}, \widehat{\bbeta})$.
+\end{enumerate}
+\vspace{0.05cm}
+\textbf{Method:} \textbf{boost\_CRF} \\
+\textbf{Inputs:} Labeled data $\{(\by_i, \bx_i), \, i = 1, \ldots, N_{train}\}$ and $\{(\by_i, \bx_i), \, i = 1, \ldots, N_{validation}\}$. \\
+\textbf{Outputs:} \textbf{CRF} parameter estimates.
+\begin{enumerate}
+\item Initialize $m = 0$, ${\tt validation\_score}[0] = -\infty$, $\widehat{\bbeta} = \b0$, $\widehat{\zeta}_s = log(\frac{n_{s}}{n_S})$ and $\widehat{\omega}_{r,s} = log(\frac{n_{r,s}}{n_{S,S}})$ for all $r,s = 1, \ldots, S$.  Here, $n_s$ is the number of occurrences of state $s$ and $n_{r,s}$ is the number of transitions from state $r$ to state $s$ in the training data set. \label{alg:CRFmodel1AlgInitZetaOmega}
+\item Repeat the following until the first occurrence of the largest element of ${\tt validation\_score}$ is not within the last ${\tt M\_search\_threshold}$ values stored in ${\tt validation\_score}$:
+	\begin{enumerate}
+	\item Set $m = m + 1$, ${\tt attempt\_num} = 0$, and ${\tt validation\_score}[m] = {\tt validation\_score}[m-1]$.
+	\item Repeat the following until ${\tt validation\_score}[m] > {\tt validation\_score}[m - 1]$ or ${\tt attempt\_num} = {\tt max\_attempts}$: \label{alg:CRFmodel1AlgAttemptsLoop}
+		\begin{enumerate}
+		\item Set ${\tt attempt\_num} = {\tt attempt\_num} + 1$, $\tilde{\bomega} = \widehat{\bomega}$ and $\tilde{\bbeta} = \widehat{\bbeta}$.
+		\item Randomly select the set $\mathcal{A}^{m} \subset \{1, \ldots, D\}$ of active features for the $m$th update.  The number of active features is a user specified parameter.  %The coefficients $\beta_{s, d}^{m}$ are fixed equal to $0$ for $d \notin \mathcal{A}^{m}$. % The number of active features is a user specified parameter. {\tt num\_active\_features}
+%		\item Initialize $\tilde{\bbeta}_{s, d}^{m}$ for $d \in \{0\} \bigcup \mathcal{A}^{m}$ by fitting a multinomial logistic regression model with offsets equal to $\widehat{\zeta}_{y_{i, 1}}^{\ind_{\{1\}}(t)} \widehat{\omega}_{y_{i, t}}^{(1 -\ind_{\{1\}}(t))} + \widehat{\beta}_{s, 0} + \sum_{d = 1}^D \widehat{\beta}_{s, d} x_{i, t, d}.$
+%$$\left( \sum_{l = 1}^{m-1} \zeta_{y_{i, 1}}^l \right)^{\ind_{\{1\}}(t)} \left( \sum_{l = 1}^{m-1} \omega_{y_{i, t}}^l \right)^{(1 -\ind_{\{1\}}(t))} + \sum_{l = 1}^{m-1} \left( \beta_{s, 0}^{l} + \sum_{d = 1}^D \beta_{s, d}^{l} x_{i, t, d} \right).$$
+%.  Fix the remaining $\tilde{\bbeta}_{s, d}^{m_{boost}} = 0$. \label{alg:CRFmodel1AlgInitBeta}
+		\item Using a numerical optimization routine, update $\tilde{\bomega}$ and $\tilde{\bbeta}$ to the constrained local maximum likelihood estimates based on the training data, holding the parameter estimates for elements of $\tilde{\bbeta}$ not in the active feature set fixed. \label{alg:CRFmodel1AlgUpdateOmegaBeta}
+		\item Using the estimates from step \ref{alg:CRFmodel1AlgUpdateOmegaBeta}, predict the values of $\by_i$ for the validation data set.  If the proportion of time points at which the prediction was correct is greater than ${\tt validation\_score}[m]$, store it in ${\tt validation\_score}[m]$ and set $\widehat{\bomega} = \tilde{\bomega}$ and $\widehat{\bbeta} = \tilde{\bbeta}$.
+		\end{enumerate}
+%	\item Set $\widehat{\bzeta} = \widehat{\bzeta} + \widehat{\bzeta}^m$, $\widehat{\bomega} = \widehat{\bomega} + \widehat{\bomega}^m$, and $\widehat{\bbeta} = \widehat{\bbeta} + \widehat{\bbeta}^m$.
+	\end{enumerate}
+\item Return $(\widehat{\bzeta}, \widehat{\bomega}, \widehat{\bbeta})$.
+\end{enumerate}
+\end{algorithm}
+\vspace{0.5cm}
+\end{minipage}
+\end{AlgorithmWrapper}
+
 
 \section{Simulation Study}
 \label{sec:SimulationStudy}
@@ -581,7 +651,7 @@ In this Section, we present classification results for three physical activity d
 
 Our three data sets were collected in two studies.  The first was described and analyzed in \citet{mannini2013activityrecognition} and the last two in \citet{sasaki2016ActivityClassificationOlder}. Table \ref{tbl:Table1ManniniSasaki} contains descriptive statistics for the study participants.
 
-\begin{table*}
+\begin{table}
 \centering
 \begin{tabular} {r l l l}
 \toprule
@@ -597,17 +667,80 @@ Weight (mean $\pm$ sd) & 70.0 $\pm$ 15.6 kg & 76.4 $\pm$ 14.2 kg & 74.5 $\pm$ 11
 \end{tabular}
 \caption{Descriptive statistics for study participants.}
 \label{tbl:Table1ManniniSasaki}
-\end{table*}
+\end{table}
 
 For the first data set, each participant performed a subset of 26 activities in the laboratory.  These activities were designed to be generally representative of activities people engage in in real life, but the order and duration of activities were determined by the researchers.  While subjects performed these activities, they wore Wocket accelerometers on their ankle, thigh, wrist, and hip. The accelerometers recorded acceleration in each of 3 orthogonal axes at a frequency of 90 Hz. In this work, we analyze only the data from the ankle and the wrist; these are the data that were previously discussed in \citet{mannini2013activityrecognition}. In that paper, researchers developed static discriminative statistical learning models (specifically, support vector machines [SVM]) to classify activities into one of several groups of similar activity types and to classify intensity. Classification performance was evaluated relative to the actual activity type by cross-validation.
 
 Our second and third data sets were collected using healthy elderly subjects and used the ActiGraph GT3X+ accelerometer  (3 axes at a frequency of 80 Hz) to measure acceleration. The second dataset was was collected using a laboratory protocol that was similar to the one used in \citet{mannini2013activityrecognition}, and the third dataset was conducted under free-living conditions. Staff followed the participants as they went about their normal activities and recorded what was done and when in terms of the type of activity performed and a categorical assessment of the intensity of the activity (Sedentary, Light, Moderate, or Vigorous). Similar to \citet{mannini2013activityrecognition}, \citet{sasaki2016ActivityClassificationOlder} used static discriminative statistical learning methods (RF and SVM) to classify activity and type, and evaluated performance using leave-one-subject-out cross-validation. %Comparisons to our methods are in Section \ref{subsec:Applications:Results}.
 
-For all datasets, we summarized the accelerometer signals using non-overlapping 12.8 second windows as was done in \citet{mannini2013activityrecognition}.  For each window, we computed a vector of statistics to summarize time and frequency domain features of the accelerometers signals.  For the data from \citet{mannini2013activityrecognition}, we used the vector of 13 features in the recommended feature set from that work.  For the data sets from \citet{sasaki2016ActivityClassificationOlder}, we used a vector of 77 features; these statistics are similar to those used by \citet{mannini2013activityrecognition}, \citet{sasaki2016ActivityClassificationOlder} and others.  We list the features used in Appendix \ref{sec:appendix:2}.
+For all datasets, we summarized the accelerometer signals using non-overlapping 12.8 second windows as was done in \citet{mannini2013activityrecognition}.  For each window, we computed a vector of statistics to summarize time and frequency domain features of the accelerometers signals.  For the data from \citet{mannini2013activityrecognition}, we used the vector of 13 features in the recommended feature set from that work.  For the data sets from \citet{sasaki2016ActivityClassificationOlder}, we used a vector of 77 features; these statistics are similar to those used by \citet{mannini2013activityrecognition}, \citet{sasaki2016ActivityClassificationOlder} and others.  Tables \ref{tbl:ManniniFeatures} and \ref{tbl:SasakiFeatures} list the accelerometer features used for the data from \citet{mannini2013activityrecognition} and \citet{sasaki2016ActivityClassificationOlder} respectively.
+
+\begin{table}[!hp]
+\centering
+\begin{tabular}{>{\raggedleft}p{.15\textwidth} >{\raggedright\arraybackslash}p{.8\textwidth}}
+\toprule
+Domain & Feature \\
+\midrule
+Time & Mean \\
+\cmidrule{2-2}
+ & Standard deviation\\
+\cmidrule{2-2}
+ & Minimum and maximum\\
+\midrule
+Frequency & Frequency and power of the first dominant frequency between 0.3 Hz and 15 Hz \\
+\cmidrule{2-2}
+ & Frequency and power of the second dominant frequency between 0.3 Hz and 15 Hz \\
+\cmidrule{2-2}
+ & Total power between 0.3 Hz and 15 Hz \\
+\cmidrule{2-2}
+ & Ratio of the power of the first dominant frequency between 0.3 Hz and 15 Hz and the total power between 0.3 Hz and 15 Hz \\
+\cmidrule{2-2}
+ & Frequency and power of the first dominant frequency between 0.3 Hz and 3 Hz \\
+\cmidrule{2-2}
+ & Ratio of the frequency of the first dominant frequency between 0.3 Hz and 15 Hz in the current window and in the previous window \\
+\bottomrule
+\end{tabular}
+\caption{Features extracted from the accelerometer signal in preprocessing the data from \protect\cite{mannini2013activityrecognition}.  All features are computed using the acceleration vector magnitude.}
+\label{tbl:ManniniFeatures}
+\end{table}
+
+\begin{table}[!hp]
+\centering
+\begin{tabular}{>{\raggedleft}p{.1\textwidth} >{\raggedright\arraybackslash}p{.6\textwidth} >{\raggedleft}p{.01\textwidth} >{\raggedleft}p{.01\textwidth} >{\raggedleft}p{.01\textwidth} >{\raggedleft}p{.025\textwidth} >{\raggedleft}p{.01\textwidth} >{\raggedleft}p{.01\textwidth}}
+%\begin{tabular}{>{\raggedleft}p{.11\textwidth} >{\raggedright\arraybackslash}p{.59\textwidth} >{\centering}p{.015\textwidth} >{\centering}p{.015\textwidth} >{\centering}p{.015\textwidth} >{\centering}p{.015\textwidth} >{\centering}p{.015\textwidth} >{\centering}p{.015\textwidth}}
+%\begin{tabular}{>{\raggedleft}p{.11\textwidth} >{\raggedright\arraybackslash}p{.59\textwidth} c c c c c c}
+\toprule
+%Domain & Feature & \multicolumn{1}{b{.015\textwidth}}{\parbox[b]{.015\textwidth}{\begin{center}X\end{center}}} & \multicolumn{1}{b{.015\textwidth}}{\parbox[b]{.015\textwidth}{\begin{center}Y\end{center}}} & \multicolumn{1}{b{.015\textwidth}}{\parbox[b]{.015\textwidth}{\begin{center}Z\end{center}}} & \multicolumn{1}{b{.015\textwidth}}{\parbox[b]{.015\textwidth}{\begin{center}VM\end{center}}} & \multicolumn{1}{b{.015\textwidth}}{\parbox[b]{.015\textwidth}{\begin{center}$\theta$\end{center}}} & \multicolumn{1}{b{.015\textwidth}}{\parbox[b]{.015\textwidth}{\begin{center}$\rho$\end{center}}} \tabularnewline
+Domain & Feature & X & Y & Z & VM & $\theta$ & $\phi$ \tabularnewline
+\midrule
+Time & Mean & Y & Y & Y & Y & Y & Y \tabularnewline
+\cmidrule{2-8}
+ & The 10th, 25th, 50th, 75th, and 90th percentiles & Y & Y & Y & Y & Y & Y \tabularnewline
+\cmidrule{2-8}
+ & Lag 1 autocorrelation & Y & Y & Y & Y & N & N \tabularnewline
+\cmidrule{2-8}
+ & Entropy: We place the observed VM values into 10 bins of equal size and calculate the proportion falling into each bin, $p_{1}, \ldots, p_{10}$.  The estimated entropy is then $-\frac{1}{10}\sum_{i = 1}^{10} p_{i} log(p_{i})$ & N & N & N & Y & N & N \tabularnewline
+\midrule
+Frequency & Frequency and power of the first dominant frequency & Y & Y & Y & Y & N & N \tabularnewline % : The frequency and estimated power for the frequency with the highest estimated power
+\cmidrule{2-8}
+ & Frequency and power of the second dominant frequency & Y & Y & Y & Y & N & N \tabularnewline %: Same as above, for the frequency with the second-highest estimated power
+\cmidrule{2-8}
+ & Total power: The sum of the estimated power for all frequencies. & Y & Y & Y & Y & N & N \tabularnewline % Note that this is equal to $\frac{T-1}{2}$ times the sample variance of the observations if $T$ is odd, with a slight adjustment if $T$ is even.
+\cmidrule{2-8}
+ & Frequency and power of the first dominant frequency in the band from 0.3 to 3 Hz & Y & Y & Y & Y & N & N \tabularnewline
+\cmidrule{2-8}
+ & Ratio of power of first dominant frequency in the band from 0.3 to 3Hz to power of first dominant frequency overall & Y & Y & Y & Y & N & N \tabularnewline
+\cmidrule{2-8}
+ & Entropy of the spectral density: After normalizing the estimated powers so that they sum to 1, we apply the entropy calculation above. & Y & Y & Y & Y & N & N \tabularnewline  %  This is a measure of how uniformly ``distributed'' the variance is among the frequencies considered.
+\bottomrule
+\end{tabular}
+\caption{Features extracted from the accelerometer signal in preprocessing the data from \protect\cite{sasaki2016ActivityClassificationOlder}.  The right-hand 6 columns indicate whether the listed feature was computed for each of the three axes on which acceleration was measured, vector magnitude, polar angle, and azimuthal angle.} %anteroposterior axis, mediolateral axis, vertical axis, 
+\label{tbl:SasakiFeatures}
+\end{table}
 
 In addition to summarizing acceleration in each window, we also assigned an activity type label  and intensity for each window. For the first data set, we use the same system for classifying activity type as \citet{mannini2013activityrecognition}, with four categories: sedentary, locomotion, cycling, and non-locomotion movement.  For the other two data sets, we used four categories: sedentary, locomotion, non-locomotion movement, and transition.  The transition category occurred when a window included more than one activity.  Activity intensity was represented by four categories differentiated on the basis of energy expenditure (METs): Sedentary ($\leq 1.5$ METs), Light ($> 1.5$ and $< 3$ METs), Moderate ($\geq 3$ and $< 6$ METs), and Vigorous ($\geq 6$ METs). We also used a Transition category for activity intensity in applications to the data from \citet{sasaki2016ActivityClassificationOlder}. Intensity was measured using indirect calorimetry (e.g.  \citep{kozey2010errorsMETs35}) in the second data set. For the other datasets, we assigned an intensity category to each time point using the MET classification of activities in the Compendium of Physical Activity (\citet{ainsworth2011}). The prevalence of different levels of activity type and intensity for each dataset are in Table \ref{tbl:Prevalence}.
 
-\begin{table*}
+\begin{table}
 \centering
 \begin{tabular} {c c c c c c c}
 \toprule
@@ -641,9 +774,9 @@ Type &  & \multicolumn{1}{c}{\parbox[b]{2cm}{\baselineskip=12pt
  \centering Sasaki\\Free Living}} & 45.5\% & 26.4\% & 18.9\% & 9.3\% & \\
 \bottomrule
 \end{tabular}
-\caption{Prevalence of activity intensity and type labels in the data from \citet{mannini2013activityrecognition} and \citet{sasaki2016ActivityClassificationOlder}.  In the data from \citet{mannini2013activityrecognition}, prevalence varies slightly across accelerometer locations since different time windows were dropped in the cleaning process they used to handle missing data due to wireless transmission problems with the accelerometers.}
+\caption{Prevalence of activity intensity and type labels in the data from \protect\citet{mannini2013activityrecognition} and \protect\citet{sasaki2016ActivityClassificationOlder}.  In the data from \protect\citet{mannini2013activityrecognition}, prevalence varies slightly across accelerometer locations since different time windows were dropped in the cleaning process they used to handle missing data due to wireless transmission problems with the accelerometers.}
 \label{tbl:Prevalence}
-\end{table*}
+\end{table}
 
 
 \subsection{Results}
@@ -1099,9 +1232,9 @@ ggplot(summary_figure_df) +
 %' \label{fig:applicationResultsPlot}
 %' \end{figure}
 
-The figure indicates that the discriminative dynamic model (\textbf{CRF}) offers the best performance overall, and the generative static model (\textbf{FMM}) offers the worst performance.  The three other approaches, which are either discriminative static models (\textbf{MLR} and \textbf{RF}) or a generative dynamic model (\textbf{HMM}) offer performance in the middle of this range.  The improvement in performance of the \textbf{CRF} relative to the other methods is statistically significant for all cases other than the \textbf{MLR} and \textbf{RF} methods in the application to classification of activity intensity (tests conducted simultaneously with construction of the confidence intervals in Figure \ref{fig:applicationResultsPlot}, family-wise significance level of 0.05).  Table \ref{tbl:detailedResults} contains the average percent correct for each response, location, data set, and model. The \textbf{CRF} achieved the highest performance level of any model in nine out of twelve classification tasks, and was competitive in the remaining three tasks.  The \textbf{FMM} had the worst performance in every case but one.  Using another summary of classification performance such as the $F_1$ score did not change these general trends, though the difference between mean $F_1$ scores achieved by the discriminative and generative methods was not statistically significant (see Supplement).
+The figure indicates that the discriminative dynamic model (\textbf{CRF}) offers the best performance overall, and the generative static model (\textbf{FMM}) offers the worst performance.  The three other approaches, which are either discriminative static models (\textbf{MLR} and \textbf{RF}) or a generative dynamic model (\textbf{HMM}) offer performance in the middle of this range.  The improvement in performance of the \textbf{CRF} relative to the other methods is statistically significant for all cases other than the \textbf{MLR} and \textbf{RF} methods in the application to classification of activity intensity (tests conducted simultaneously with construction of the confidence intervals in Figure \ref{fig:applicationResultsPlot}, family-wise significance level of 0.05).  Table \ref{tbl:detailedResults} contains the average percent correct for each response, location, data set, and model. The \textbf{CRF} achieved the highest performance level of any model in nine out of twelve classification tasks, and was competitive in the remaining three tasks.  The \textbf{FMM} had the worst performance in every case but one.  Summarizing classification performance with the $F_1$ score did not change these general trends, though the difference between mean $F_1$ scores achieved by the discriminative and generative methods was not statistically significant (see Supplement).
 
-% \begin{table*}
+% \begin{table}
 % \centering
 % \begin{tabular} {c c c c c c}
 % \toprule
@@ -1123,9 +1256,9 @@ The figure indicates that the discriminative dynamic model (\textbf{CRF}) offers
 % \end{tabular}
 % \caption{Results from activity type and intensity classification tasks in data from \cite{mannini2013activityrecognition} and \cite{sasaki2016ActivityClassificationOlder} by response variable, accelerometer location and data set.}
 % \label{tbl:detailedResults}
-% \end{table*}
+% \end{table}
 
-\begin{table*}
+\begin{table}
 \centering
 \begin{tabular} {c c c c c c c c}
 \toprule
@@ -1163,9 +1296,9 @@ for(i in seq_len(nrow(results_table))) {
 @
 \bottomrule
 \end{tabular}
-\caption{Estimated mean proportion correct for the activity type and intensity classification tasks in data from \cite{mannini2013activityrecognition} and \cite{sasaki2016ActivityClassificationOlder} by response variable, accelerometer location and data set.}
+\caption{Estimated mean proportion correct for the activity type and intensity classification tasks in data from \protect\cite{mannini2013activityrecognition} and \protect\cite{sasaki2016ActivityClassificationOlder} by response variable, accelerometer location and data set.}
 \label{tbl:detailedResults}
-\end{table*}
+\end{table}
 
 
 
@@ -1205,7 +1338,7 @@ for(i in seq_len(nrow(results_table))) {
 %
 %
 %
-%\begin{figure*}
+%\begin{figure}
 %<<MedianResultsLinePlotp, fig.height = 8>>=
 %origManniniTypeResults <- ManniniTypeResults
 %ManniniTypeResults <- ManniniTypeResults[(ManniniTypeResults$fit_method == "RF" | ManniniTypeResults$fit_method == "SVM" | ManniniTypeResults$trans_mat_parameterization == "Full"), ]
@@ -1312,7 +1445,7 @@ for(i in seq_len(nrow(results_table))) {
 %@
 %\caption{Plot showing the median proportion of windows classified correctly using a leave-one-subject-out procedure.  The median is with respect to subject; we take this as a robust estimator of central tendency of performance of the classification method.}
 %\label{fig:MedianResultsLinePlotp}
-%\end{figure*}
+%\end{figure}
 %
 %There is a fairly large amount of overlap in the box plots, but a clear pattern emerges: overall, the \textbf{RF} and \textbf{Gaussian-mixt-HMM} methods are outperformed by the \textbf{CRF} and \textbf{RF-HMM} by a small margin.  This relationship does not hold for every classification task, but improvements in the median proportion correct achieved by using the dynamic discriminative methods instead of a static or generative method that range from about 0.03 to 0.1 are common.  If we extrapolate to a 16 hour day while holding the proportion of time in each activity category fixed, these improvements correspond to gains of between about 30 and 90 minutes classified correctly in each day.  We also note that for Data Set 1, all of the methods we considered in this article outperformed the support vector machine that was employed in \cite{mannini2013activityrecognition}.
 %
@@ -1325,7 +1458,7 @@ for(i in seq_len(nrow(results_table))) {
 
 In this work, we have considered two general characteristics of methods that can be used to classify physical activity type or intensity with accelerometer data: (1) whether or not they handle temporal dependence in activity class, and (2) whether they take a generative or discriminative approach. Through a simulation study and applications to three data sets, we have demonstrated that using a dynamic, discriminative approach can yield consistent gains in the proportion correct relative to static or generative methods.  The argument in favor of dynamic, discriminative models is that they are a better representation of the data than static or generative methods are.  Dynamic models are superior to static models because they capture a key feature of the data: activity types at nearby times are dependent.  Discriminative methods are superior to generative methods because they do not require a specification for the distribution of the feature vector; this distribution is too complex to model well with simple parametric approaches, and is too high-dimensional to be handled easily by non-parametric methods. The complexity of the accelerometer features is illustrated in Figure \ref{fig:dataCharacteristicsComplexity}.
 
-\begin{figure*}
+\begin{figure}
 <<Observation2FeatureComplexity, fig.height = 7, fig.keep = "last", cache = FALSE>>=
 feature_pairs <- list(
 c("x_mean", "z_quantile_0.1"),
@@ -1416,9 +1549,9 @@ grid.text("Accelerometer Signal Feature Pair Plots\nAccelerometer on the Wrist, 
 #grid.text("(c)", gp = gpar(fontsize = 10), vp = viewport(layout.pos.row = 5, layout.pos.col = 1))
 #grid.text("(d)", gp = gpar(fontsize = 10), vp = viewport(layout.pos.row = 5, layout.pos.col = 2))
 @
-\caption{Plots of pairs of accelerometer features.  Each point represents one window of length 12.8 seconds in the free living data from \cite{sasaki2016ActivityClassificationOlder} with the accelerometer placed at the wrist.  Features plotted include means, percentiles, lag one autocorrelation, and power at the dominant frequency of acceleration recorded along each axis, and means and percentiles of the azumithal angle $\phi$ in a spherical coordinates representation of the signal.  The azimuthal angle indicates the relative amounts of acceleration recorded along each coordinate axis in the horizontal plane relative to the accelerometer.  There is complex structure in the feature distributions, with multiple modes and a variety of constraints.}
+\caption{Plots of pairs of accelerometer features.  Each point represents one window of length 12.8 seconds in the free living data from \protect\cite{sasaki2016ActivityClassificationOlder} with the accelerometer placed at the wrist.  Features plotted include means, percentiles, lag one autocorrelation, and power at the dominant frequency of acceleration recorded along each axis, and means and percentiles of the azumithal angle $\phi$ in a spherical coordinates representation of the signal.  The azimuthal angle indicates the relative amounts of acceleration recorded along each coordinate axis in the horizontal plane relative to the accelerometer.  There is complex structure in the feature distributions, with multiple modes and a variety of constraints.}
 \label{fig:dataCharacteristicsComplexity}
-\end{figure*}
+\end{figure}
 
 We have discussed just these two characteristics of the classification method in this article, but there are other aspects of the modeling that we think may be fruitful to press in the future. For instance, all of the methods that we included in our comparisons are based on the same general approach: we divide the acceleration signal up into non-overlapping windows 12.8 seconds long, extract a vector of features summarizing the acceleration signal in each window, and fit a model that relates these features to the activity type in each window.  However, this is not the only option for modeling these data, and other approaches we have not considered may offer superior performance.  One option that was suggested by \citet{zheng2013ACmultiscaleensemble} and \citet{lester2005hybridHMMforPA} is to combine information from several overlapping windows of different lengths.  This idea could be implemented within a single CRF by expanding $\bx_{i, t}$ to include features from multiple window lengths, or by combining inferences from multiple CRFs operating at different time scales.  It may also be beneficial to explore the use of new features.  Another option would be to abandon the windowing approach altogether and model the accelerometer signal directly.  An example of one approach to doing this is in \citet{bai2012movelets}.
 
@@ -1434,131 +1567,16 @@ Another restriction imposed in our formulation of the CRF is that the accelerome
 
 While any one of these approaches might be feasible to estimate, we believe that they would lead to only modest improvements in classification performance in the free living setting.  We believe that the quality of the data is a more important limiting factor.  While free living data is important to collect because laboratory data tends to lead to models that perform poorly outside of the laboratory, data collection is much more difficult in the free living setting than it is in the laboratory (\citet{sasaki2016ActivityClassificationOlder}).  A result of this is that our recorded labels for physical activity type are less reliable.  This impacts the training of the classification methods, since the classifiers may learn to associate certain patterns in the accelerometer signal with the incorrect labels.  It also impacts our scoring of the success of the classifier through leave one subject out cross validation, since a predicted class label may give an accurate description of a subject's behavior but disagree with the recorded class.  One way to limit this problem would be to incorporate a method of validating the class labels in the study design, for instance by recording videos of subjects while they are wearing the accelerometers.
 
+\backmatter
+
 \section*{Acknowledgements}
 
 The authors thank Dr. Stephen Intille (Northeastern University) for making his data available to us. This work was partially supported by National Cancer Institute grant (R01-CA121005).
 
-\appendix
-\section{CRF Estimation Algorithm}
-\label{sec:appendix:bbparalg}
+\section*{Supplementary Materials}
 
-Algorithm \ref{alg:CRFmodel1Est} specifies the estimation procedure we used for the \textbf{CRF} model.
-
-\begin{AlgorithmWrapper}[!hp]
-\begin{minipage}{\textwidth}
-\baselineskip=12pt
-\begin{algorithm}{\textbf{CRF} Estimation Algorithm} \label{alg:CRFmodel1Est}
-
-\vspace{0.05cm}
-\textbf{Method:} \textbf{estimate\_CRF} \\
-\textbf{Inputs:} Labeled data $\{(\by_i, \bx_i), \, i = 1, \ldots, N\}$ \\
-\textbf{Outputs:} \textbf{CRF} parameter estimates.
-\begin{enumerate}
-\item Initialize all parameter estimates $\widehat{\bzeta}$, $\widehat{\bomega}$, and $\widehat{\bbeta}$ to $\b0$.
-\item For $b = 1, \ldots, M_{bag}$, repeat the following:
-	\begin{enumerate}
-	\item Draw a sample of $N$ observation sequences with replacement from the set of all observation sequences.  Collect the sampled sequences in $\mathcal{B}^{b}$ and the unsampled sequences in $\mathcal{O}^{b}$. \label{alg:CRFmodel1AlgBag}
-	\item Call \textbf{boost\_CRF}$(\mathcal{B}^{b}, \mathcal{O}^{b})$; the return value is the vector $(\widehat{\bzeta}^b, \widehat{\bomega}^b, \widehat{\bbeta}^b)$. \label{alg:CRFmodel1AlgCallBoost}
-	\item Set $\widehat{\bzeta} = \widehat{\bzeta} + \frac{1}{M_{bag}} \widehat{\bzeta}^b$, $\widehat{\bomega} = \widehat{\bomega} + \frac{1}{M_{bag}} \widehat{\bomega}^b$, and $\widehat{\bbeta} = \widehat{\bbeta} + \frac{1}{M_{bag}} \widehat{\bbeta}^b$. \label{alg:CRFmodel1AlgCombineComponents}
-	\end{enumerate}
-\item Return the combined parameter estimates $(\widehat{\bzeta}, \widehat{\bomega}, \widehat{\bbeta})$.
-\end{enumerate}
-\vspace{0.05cm}
-\textbf{Method:} \textbf{boost\_CRF} \\
-\textbf{Inputs:} Labeled data $\{(\by_i, \bx_i), \, i = 1, \ldots, N_{train}\}$ and $\{(\by_i, \bx_i), \, i = 1, \ldots, N_{validation}\}$. \\
-\textbf{Outputs:} \textbf{CRF} parameter estimates.
-\begin{enumerate}
-\item Initialize $m = 0$, ${\tt validation\_score}[0] = -\infty$, $\widehat{\bbeta} = \b0$, $\widehat{\zeta}_s = log(\frac{n_{s}}{n_S})$ and $\widehat{\omega}_{r,s} = log(\frac{n_{r,s}}{n_{S,S}})$ for all $r,s = 1, \ldots, S$.  Here, $n_s$ is the number of occurrences of state $s$ and $n_{r,s}$ is the number of transitions from state $r$ to state $s$ in the training data set. \label{alg:CRFmodel1AlgInitZetaOmega}
-\item Repeat the following until the first occurrence of the largest element of ${\tt validation\_score}$ is not within the last ${\tt M\_search\_threshold}$ values stored in ${\tt validation\_score}$:
-	\begin{enumerate}
-	\item Set $m = m + 1$, ${\tt attempt\_num} = 0$, and ${\tt validation\_score}[m] = {\tt validation\_score}[m-1]$.
-	\item Repeat the following until ${\tt validation\_score}[m] > {\tt validation\_score}[m - 1]$ or ${\tt attempt\_num} = {\tt max\_attempts}$: \label{alg:CRFmodel1AlgAttemptsLoop}
-		\begin{enumerate}
-		\item Set ${\tt attempt\_num} = {\tt attempt\_num} + 1$, $\tilde{\bomega} = \widehat{\bomega}$ and $\tilde{\bbeta} = \widehat{\bbeta}$.
-		\item Randomly select the set $\mathcal{A}^{m} \subset \{1, \ldots, D\}$ of active features for the $m$th update.  The number of active features is a user specified parameter.  %The coefficients $\beta_{s, d}^{m}$ are fixed equal to $0$ for $d \notin \mathcal{A}^{m}$. % The number of active features is a user specified parameter. {\tt num\_active\_features}
-%		\item Initialize $\tilde{\bbeta}_{s, d}^{m}$ for $d \in \{0\} \bigcup \mathcal{A}^{m}$ by fitting a multinomial logistic regression model with offsets equal to $\widehat{\zeta}_{y_{i, 1}}^{\ind_{\{1\}}(t)} \widehat{\omega}_{y_{i, t}}^{(1 -\ind_{\{1\}}(t))} + \widehat{\beta}_{s, 0} + \sum_{d = 1}^D \widehat{\beta}_{s, d} x_{i, t, d}.$
-%$$\left( \sum_{l = 1}^{m-1} \zeta_{y_{i, 1}}^l \right)^{\ind_{\{1\}}(t)} \left( \sum_{l = 1}^{m-1} \omega_{y_{i, t}}^l \right)^{(1 -\ind_{\{1\}}(t))} + \sum_{l = 1}^{m-1} \left( \beta_{s, 0}^{l} + \sum_{d = 1}^D \beta_{s, d}^{l} x_{i, t, d} \right).$$
-%.  Fix the remaining $\tilde{\bbeta}_{s, d}^{m_{boost}} = 0$. \label{alg:CRFmodel1AlgInitBeta}
-		\item Using a numerical optimization routine, update $\tilde{\bomega}$ and $\tilde{\bbeta}$ to the constrained local maximum likelihood estimates based on the training data, holding the parameter estimates for elements of $\tilde{\bbeta}$ not in the active feature set fixed. \label{alg:CRFmodel1AlgUpdateOmegaBeta}
-		\item Using the estimates from step \ref{alg:CRFmodel1AlgUpdateOmegaBeta}, predict the values of $\by_i$ for the validation data set.  If the proportion of time points at which the prediction was correct is greater than ${\tt validation\_score}[m]$, store it in ${\tt validation\_score}[m]$ and set $\widehat{\bomega} = \tilde{\bomega}$ and $\widehat{\bbeta} = \tilde{\bbeta}$.
-		\end{enumerate}
-%	\item Set $\widehat{\bzeta} = \widehat{\bzeta} + \widehat{\bzeta}^m$, $\widehat{\bomega} = \widehat{\bomega} + \widehat{\bomega}^m$, and $\widehat{\bbeta} = \widehat{\bbeta} + \widehat{\bbeta}^m$.
-	\end{enumerate}
-\item Return $(\widehat{\bzeta}, \widehat{\bomega}, \widehat{\bbeta})$.
-\end{enumerate}
-\end{algorithm}
-\vspace{0.5cm}
-\end{minipage}
-\end{AlgorithmWrapper}
-
-
-\section{Accelerometer Features}
-\label{sec:appendix:2}
-
-Tables \ref{tbl:ManniniFeatures} and \ref{tbl:SasakiFeatures} list the accelerometer features used for the data from \citet{mannini2013activityrecognition} and \citet{sasaki2016ActivityClassificationOlder} respectively.
-
-\begin{table}[!hp]
-\centering
-\begin{tabular}{>{\raggedleft}p{.15\textwidth} >{\raggedright\arraybackslash}p{.8\textwidth}}
-\toprule
-Domain & Feature \\
-\midrule
-Time & Mean \\
-\cmidrule{2-2}
- & Standard deviation\\
-\cmidrule{2-2}
- & Minimum and maximum\\
-\midrule
-Frequency & Frequency and power of the first dominant frequency between 0.3 Hz and 15 Hz \\
-\cmidrule{2-2}
- & Frequency and power of the second dominant frequency between 0.3 Hz and 15 Hz \\
-\cmidrule{2-2}
- & Total power between 0.3 Hz and 15 Hz \\
-\cmidrule{2-2}
- & Ratio of the power of the first dominant frequency between 0.3 Hz and 15 Hz and the total power between 0.3 Hz and 15 Hz \\
-\cmidrule{2-2}
- & Frequency and power of the first dominant frequency between 0.3 Hz and 3 Hz \\
-\cmidrule{2-2}
- & Ratio of the frequency of the first dominant frequency between 0.3 Hz and 15 Hz in the current window and in the previous window \\
-\bottomrule
-\end{tabular}
-\caption{Features extracted from the accelerometer signal in preprocessing the data from \cite{mannini2013activityrecognition}.  All features are computed using the acceleration vector magnitude.}
-\label{tbl:ManniniFeatures}
-\end{table}
-
-\begin{table}[!hp]
-\centering
-\begin{tabular}{>{\raggedleft}p{.1\textwidth} >{\raggedright\arraybackslash}p{.6\textwidth} >{\raggedleft}p{.01\textwidth} >{\raggedleft}p{.01\textwidth} >{\raggedleft}p{.01\textwidth} >{\raggedleft}p{.025\textwidth} >{\raggedleft}p{.01\textwidth} >{\raggedleft}p{.01\textwidth}}
-%\begin{tabular}{>{\raggedleft}p{.11\textwidth} >{\raggedright\arraybackslash}p{.59\textwidth} >{\centering}p{.015\textwidth} >{\centering}p{.015\textwidth} >{\centering}p{.015\textwidth} >{\centering}p{.015\textwidth} >{\centering}p{.015\textwidth} >{\centering}p{.015\textwidth}}
-%\begin{tabular}{>{\raggedleft}p{.11\textwidth} >{\raggedright\arraybackslash}p{.59\textwidth} c c c c c c}
-\toprule
-%Domain & Feature & \multicolumn{1}{b{.015\textwidth}}{\parbox[b]{.015\textwidth}{\begin{center}X\end{center}}} & \multicolumn{1}{b{.015\textwidth}}{\parbox[b]{.015\textwidth}{\begin{center}Y\end{center}}} & \multicolumn{1}{b{.015\textwidth}}{\parbox[b]{.015\textwidth}{\begin{center}Z\end{center}}} & \multicolumn{1}{b{.015\textwidth}}{\parbox[b]{.015\textwidth}{\begin{center}VM\end{center}}} & \multicolumn{1}{b{.015\textwidth}}{\parbox[b]{.015\textwidth}{\begin{center}$\theta$\end{center}}} & \multicolumn{1}{b{.015\textwidth}}{\parbox[b]{.015\textwidth}{\begin{center}$\rho$\end{center}}} \tabularnewline
-Domain & Feature & X & Y & Z & VM & $\theta$ & $\phi$ \tabularnewline
-\midrule
-Time & Mean & Y & Y & Y & Y & Y & Y \tabularnewline
-\cmidrule{2-8}
- & The 10th, 25th, 50th, 75th, and 90th percentiles & Y & Y & Y & Y & Y & Y \tabularnewline
-\cmidrule{2-8}
- & Lag 1 autocorrelation & Y & Y & Y & Y & N & N \tabularnewline
-\cmidrule{2-8}
- & Entropy: We place the observed VM values into 10 bins of equal size and calculate the proportion falling into each bin, $p_{1}, \ldots, p_{10}$.  The estimated entropy is then $-\frac{1}{10}\sum_{i = 1}^{10} p_{i} log(p_{i})$ & N & N & N & Y & N & N \tabularnewline
-\midrule
-Frequency & Frequency and power of the first dominant frequency & Y & Y & Y & Y & N & N \tabularnewline % : The frequency and estimated power for the frequency with the highest estimated power
-\cmidrule{2-8}
- & Frequency and power of the second dominant frequency & Y & Y & Y & Y & N & N \tabularnewline %: Same as above, for the frequency with the second-highest estimated power
-\cmidrule{2-8}
- & Total power: The sum of the estimated power for all frequencies. & Y & Y & Y & Y & N & N \tabularnewline % Note that this is equal to $\frac{T-1}{2}$ times the sample variance of the observations if $T$ is odd, with a slight adjustment if $T$ is even.
-\cmidrule{2-8}
- & Frequency and power of the first dominant frequency in the band from 0.3 to 3 Hz & Y & Y & Y & Y & N & N \tabularnewline
-\cmidrule{2-8}
- & Ratio of power of first dominant frequency in the band from 0.3 to 3Hz to power of first dominant frequency overall & Y & Y & Y & Y & N & N \tabularnewline
-\cmidrule{2-8}
- & Entropy of the spectral density: After normalizing the estimated powers so that they sum to 1, we apply the entropy calculation above. & Y & Y & Y & Y & N & N \tabularnewline  %  This is a measure of how uniformly ``distributed'' the variance is among the frequencies considered.
-\bottomrule
-\end{tabular}
-\caption{Features extracted from the accelerometer signal in preprocessing the data from \cite{sasaki2016ActivityClassificationOlder}.  The right-hand 6 columns indicate whether the listed feature was computed for each of the three axes on which acceleration was measured, vector magnitude, polar angle, and azimuthal angle.} %anteroposterior axis, mediolateral axis, vertical axis, 
-\label{tbl:SasakiFeatures}
-\end{table}
+Supplementary Materials, referenced in Section~\ref{sec:SimulationStudy} and Section~\ref{sec:Applications}, are available with
+this paper at the Biometrics website on Wiley Online Library.\vspace*{-8pt}
 
 
 %Figures \ref{fig:ManniniTypeResultsBoxplotsp}, \ref{fig:SasakiLabTypeResultsBoxplotsp}, and \ref{fig:SasakiFreeLivingTypeResultsBoxplotsp} present box plots of the results obtained from performing classification of type and intensity for each of our three data sets with a leave-one-subject-out design.
@@ -1642,12 +1660,11 @@ Frequency & Frequency and power of the first dominant frequency & Y & Y & Y & Y 
 %\label{fig:SasakiFreeLivingTypeResultsBoxplotsp}
 %\end{figure}
 
-\newpage
-\newpage
 
-\bibliographystyle{plainnat}
+\bibliographystyle{biom}
 \bibliography{HMMbib}
 
 
+\label{lastpage}
 
 \end{document}
