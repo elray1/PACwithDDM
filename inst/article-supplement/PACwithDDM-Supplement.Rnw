@@ -106,6 +106,57 @@ Amherst, MA 01003-9305, USA \\
 
 In this supplement we present additional results showing the performance of each method in the simulation study and in the applications as measured by the macro $F_1$ score, as well as a description of the mixed effects models used to estimate mean performance for each model and assess whether the differences in model performance were statistically significant.
 
+\section{Conditional Random Field Estimation Algorithm}
+
+A detailed desription of the estimation algorithm used for the \textbf{CRF} is in Algorithm \ref{alg:CRFmodel1Est}.
+
+\begin{AlgorithmWrapper}[!hp]
+\begin{minipage}{\textwidth}
+\baselineskip=12pt
+\begin{algorithm}{\textbf{CRF} Estimation Algorithm} \label{alg:CRFmodel1Est}
+
+\vspace{0.05cm}
+\textbf{Method:} \textbf{estimate\_CRF} \\
+\textbf{Inputs:} Labeled data $\{(\by_i, \bx_i), \, i = 1, \ldots, N\}$ \\
+\textbf{Outputs:} \textbf{CRF} parameter estimates.
+\begin{enumerate}
+\item Initialize all parameter estimates $\widehat{\bzeta}$, $\widehat{\bomega}$, and $\widehat{\bbeta}$ to $\b0$.
+\item For $b = 1, \ldots, M_{bag}$, repeat the following:
+	\begin{enumerate}
+	\item Draw a sample of $N$ observation sequences with replacement from the set of all observation sequences.  Collect the sampled sequences in $\mathcal{B}^{b}$ and the unsampled sequences in $\mathcal{O}^{b}$. \label{alg:CRFmodel1AlgBag}
+	\item Call \textbf{boost\_CRF}$(\mathcal{B}^{b}, \mathcal{O}^{b})$; the return value is the vector $(\widehat{\bzeta}^b, \widehat{\bomega}^b, \widehat{\bbeta}^b)$. \label{alg:CRFmodel1AlgCallBoost}
+	\item Set $\widehat{\bzeta} = \widehat{\bzeta} + \frac{1}{M_{bag}} \widehat{\bzeta}^b$, $\widehat{\bomega} = \widehat{\bomega} + \frac{1}{M_{bag}} \widehat{\bomega}^b$, and $\widehat{\bbeta} = \widehat{\bbeta} + \frac{1}{M_{bag}} \widehat{\bbeta}^b$. \label{alg:CRFmodel1AlgCombineComponents}
+	\end{enumerate}
+\item Return the combined parameter estimates $(\widehat{\bzeta}, \widehat{\bomega}, \widehat{\bbeta})$.
+\end{enumerate}
+\vspace{0.05cm}
+\textbf{Method:} \textbf{boost\_CRF} \\
+\textbf{Inputs:} Labeled data $\{(\by_i, \bx_i), \, i = 1, \ldots, N_{train}\}$ and $\{(\by_i, \bx_i), \, i = 1, \ldots, N_{validation}\}$. \\
+\textbf{Outputs:} \textbf{CRF} parameter estimates.
+\begin{enumerate}
+\item Initialize $m = 0$, ${\tt validation\_score}[0] = -\infty$, $\widehat{\bbeta} = \b0$, $\widehat{\zeta}_s = log(\frac{n_{s}}{n_S})$ and $\widehat{\omega}_{r,s} = log(\frac{n_{r,s}}{n_{S,S}})$ for all $r,s = 1, \ldots, S$.  Here, $n_s$ is the number of occurrences of state $s$ and $n_{r,s}$ is the number of transitions from state $r$ to state $s$ in the training data set. \label{alg:CRFmodel1AlgInitZetaOmega}
+\item Repeat the following until the first occurrence of the largest element of ${\tt validation\_score}$ is not within the last ${\tt M\_search\_threshold}$ values stored in ${\tt validation\_score}$:
+	\begin{enumerate}
+	\item Set $m = m + 1$, ${\tt attempt\_num} = 0$, and ${\tt validation\_score}[m] = {\tt validation\_score}[m-1]$.
+	\item Repeat the following until ${\tt validation\_score}[m] > {\tt validation\_score}[m - 1]$ or ${\tt attempt\_num} = {\tt max\_attempts}$: \label{alg:CRFmodel1AlgAttemptsLoop}
+		\begin{enumerate}
+		\item Set ${\tt attempt\_num} = {\tt attempt\_num} + 1$, $\tilde{\bomega} = \widehat{\bomega}$ and $\tilde{\bbeta} = \widehat{\bbeta}$.
+		\item Randomly select the set $\mathcal{A}^{m} \subset \{1, \ldots, D\}$ of active features for the $m$th update.  The number of active features is a user specified parameter.  %The coefficients $\beta_{s, d}^{m}$ are fixed equal to $0$ for $d \notin \mathcal{A}^{m}$. % The number of active features is a user specified parameter. {\tt num\_active\_features}
+%		\item Initialize $\tilde{\bbeta}_{s, d}^{m}$ for $d \in \{0\} \bigcup \mathcal{A}^{m}$ by fitting a multinomial logistic regression model with offsets equal to $\widehat{\zeta}_{y_{i, 1}}^{\ind_{\{1\}}(t)} \widehat{\omega}_{y_{i, t}}^{(1 -\ind_{\{1\}}(t))} + \widehat{\beta}_{s, 0} + \sum_{d = 1}^D \widehat{\beta}_{s, d} x_{i, t, d}.$
+%$$\left( \sum_{l = 1}^{m-1} \zeta_{y_{i, 1}}^l \right)^{\ind_{\{1\}}(t)} \left( \sum_{l = 1}^{m-1} \omega_{y_{i, t}}^l \right)^{(1 -\ind_{\{1\}}(t))} + \sum_{l = 1}^{m-1} \left( \beta_{s, 0}^{l} + \sum_{d = 1}^D \beta_{s, d}^{l} x_{i, t, d} \right).$$
+%.  Fix the remaining $\tilde{\bbeta}_{s, d}^{m_{boost}} = 0$. \label{alg:CRFmodel1AlgInitBeta}
+		\item Using a numerical optimization routine, update $\tilde{\bomega}$ and $\tilde{\bbeta}$ to the constrained local maximum likelihood estimates based on the training data, holding the parameter estimates for elements of $\tilde{\bbeta}$ not in the active feature set fixed. \label{alg:CRFmodel1AlgUpdateOmegaBeta}
+		\item Using the estimates from step \ref{alg:CRFmodel1AlgUpdateOmegaBeta}, predict the values of $\by_i$ for the validation data set.  If the proportion of time points at which the prediction was correct is greater than ${\tt validation\_score}[m]$, store it in ${\tt validation\_score}[m]$ and set $\widehat{\bomega} = \tilde{\bomega}$ and $\widehat{\bbeta} = \tilde{\bbeta}$.
+		\end{enumerate}
+%	\item Set $\widehat{\bzeta} = \widehat{\bzeta} + \widehat{\bzeta}^m$, $\widehat{\bomega} = \widehat{\bomega} + \widehat{\bomega}^m$, and $\widehat{\bbeta} = \widehat{\bbeta} + \widehat{\bbeta}^m$.
+	\end{enumerate}
+\item Return $(\widehat{\bzeta}, \widehat{\bomega}, \widehat{\bbeta})$.
+\end{enumerate}
+\end{algorithm}
+\vspace{0.5cm}
+\end{minipage}
+\end{AlgorithmWrapper}
+
 
 \section{Simulation Study}
 \label{sec:SimulationStudy}
@@ -123,7 +174,176 @@ Here, $\mbox{TP}_s$, $\mbox{FP}_s$, and $\mbox{FN}_s$ are respectively the true 
 For the simulation study, the relative performance of the methods as measured by the macro $F_1$ score was the same as it was when the methods were evaluated using the proportion correct (Supplemental Figure~\ref{fig:simStudyResultsBoxplotsf1}).
 
 % read in data for plots
-<<DataCharacteristsicsPlotReadData, cache = TRUE>>=
+<<fitSimStudyResultsLMEModel, cache = FALSE, echo = FALSE, fig.height = 5>>=
+suppressMessages(suppressWarnings(library("nlme")))
+suppressMessages(suppressWarnings(library("multcomp")))
+# fit mixed effects model with a separate mean for each combination of
+# data set, accelerometer location, response variable and fit method, random effect for subject, and
+# variance specific to combination of subject, data set, response variable, and location
+
+simStudyResults$fit_method <- factor(as.character(simStudyResults$fit_method), levels = c("FMM", "HMM", "MLR", "CRF", "RF"))
+names(simStudyResults)[names(simStudyResults) == "obs_dist_normal"] <- "obs_dist_complex"
+levels(simStudyResults$obs_dist_complex) <- c("Complex", "Simple")
+simStudyResults$obs_dist_complex_pretty <- simStudyResults$obs_dist_complex
+levels(simStudyResults$obs_dist_complex_pretty) <- c("Complex Emission Distribution", "Simple Emission Distribution")
+
+levels(simStudyResults$time_dep) <- c("No Time Dependence", "Time Dependence")
+
+# results_fit <- lme(fixed = prop_correct ~ location * fit_method * data_set * response,
+# 	random = ~ 1 | subject,
+# #	weights = varIdent(form = ~ 1 | subject * location),
+# #	weights = varIdent(form = ~ 1 | subject * location * data_set * response),
+# 	weights = varIdent(form = ~ 1 | location * fit_method * data_set * response),
+# 	data = combined_results_by_subject,
+# 	control = lmeControl(maxIter = 500, msMaxIter = 500, niterEM = 250, msMaxEval = 2000))
+
+#table(paste(combined_results_by_subject$location, combined_results_by_subject$fit_method, combined_results_by_subject$data_set, combined_results_by_subject$response, combined_results_by_subject$subject))
+
+results_fit <- lme(fixed = prop_correct ~ obs_dist_complex * time_dep * fit_method,
+ 	random = ~ 1 | sim_ind,
+#	weights = varIdent(form = ~ 1 | subject * location),
+#	weights = varIdent(form = ~ 1 | subject * location * data_set * response),
+ 	weights = varIdent(form = ~ 1 | obs_dist_complex * time_dep * fit_method),
+ 	data = simStudyResults,
+ 	control = lmeControl(maxIter = 500, msMaxIter = 500, niterEM = 250, msMaxEval = 2000))
+
+
+# assemble a data frame with estimates of relevant linear combinations of parameters and CIs.
+# We want estimates for:
+#  - the mean for each combination of location and classification method
+#  - the difference in means between each pair of methods within location
+#  - the difference in means between each location within each method
+unique_fit_methods <- as.character(unique(simStudyResults$fit_method))
+unique_obs_dist_complex <- as.character(unique(simStudyResults$obs_dist_complex))
+unique_time_dep <- as.character(unique(simStudyResults$time_dep))
+
+num_fit_methods <- length(unique_fit_methods)
+num_obs_dist_complex <- length(unique_obs_dist_complex)
+num_time_dep <- length(unique_time_dep)
+
+unique_fit_method_descriptors <- paste0("fit_method", sort(unique_fit_methods))
+unique_obs_dist_complex_descriptors <- paste0("obs_dist_complex", sort(unique_obs_dist_complex))
+unique_time_dep_descriptors <- paste0("time_dep", sort(unique_time_dep))
+
+lc_df <- expand.grid(
+  fit_method = unique_fit_methods,
+  obs_dist_complex = unique_obs_dist_complex,
+  time_dep = unique_time_dep,
+  stringsAsFactors = FALSE)
+
+lc_df$fit_method_descriptor <- paste0("fit_method", lc_df$fit_method)
+lc_df$obs_dist_complex_descriptor <- paste0("obs_dist_complex", lc_df$obs_dist_complex)
+lc_df$time_dep_descriptor <- paste0("time_dep", lc_df$time_dep)
+lc_df$name <- apply(as.matrix(lc_df[, 1:4]), 1, paste, collapse = "-")
+
+num_leading_cols <- ncol(lc_df)
+coef_cols <- seq(
+  from = num_leading_cols + 1,
+  length = num_fit_methods * num_obs_dist_complex * num_time_dep
+)
+
+# corresponding indicator vector for each coefficient
+coef_names <- names(fixef(results_fit))
+unique_coef_name_component_descriptors <- unique(unlist(strsplit(coef_names, ":")))
+intercept_fit_method <- unique_fit_method_descriptors[
+  !(unique_fit_method_descriptors %in% unique_coef_name_component_descriptors)]
+intercept_obs_dist_complex <- unique_obs_dist_complex_descriptors[
+  !(unique_obs_dist_complex_descriptors %in% unique_coef_name_component_descriptors)]
+intercept_time_dep <- unique_time_dep_descriptors[
+  !(unique_time_dep_descriptors %in% unique_coef_name_component_descriptors)]
+for(coef_ind in seq(from = 1, to = length(coef_names))) {
+	split_name <- unlist(strsplit(coef_names[[coef_ind]], ":"))
+	if(!any(split_name %in% unique_fit_method_descriptors[unique_fit_method_descriptors != intercept_fit_method])) {
+		split_name <- c(split_name, unique_fit_method_descriptors)
+	}
+	if(!any(split_name %in% unique_obs_dist_complex_descriptors[unique_obs_dist_complex_descriptors != intercept_obs_dist_complex])) {
+		split_name <- c(split_name, unique_obs_dist_complex_descriptors)
+	}
+	if(!any(split_name %in% unique_time_dep_descriptors[unique_time_dep_descriptors != intercept_time_dep])) {
+		split_name <- c(split_name, unique_time_dep_descriptors)
+	}
+
+	lc_df[[paste0("coef", coef_ind)]] <- 0
+	lc_df[[paste0("coef", coef_ind)]][
+	  lc_df$fit_method_descriptor %in% split_name &
+		lc_df$obs_dist_complex_descriptor %in% split_name &
+	  lc_df$time_dep_descriptor %in% split_name] <- 1
+}
+
+## contrasts of
+## (mean performance method 1) - (mean performance method 2) for all pairs of methods
+## within obs_dist_complex and time_dep
+rowind <- nrow(lc_df) # index of new row to add to lc_df
+confint_rows <- c() # rows for which to compute confidence intervals
+for(fit_method1_ind in seq(from = 1, to = length(unique_fit_methods) - 1)) {
+  for(fit_method2_ind in seq(from = fit_method1_ind + 1, to = length(unique_fit_methods))) {
+    fit_method1 <- unique_fit_methods[fit_method1_ind]
+    fit_method2 <- unique_fit_methods[fit_method2_ind]
+    
+    for(obs_dist_complex_val in unique_obs_dist_complex) {
+      for(time_dep_val in unique_time_dep) {
+        rowind <- rowind + 1
+      	confint_rows <- c(confint_rows, rowind)
+    	  
+        m1_rowind <- which(lc_df$name == paste0(fit_method1, "-", obs_dist_complex_val, "-", time_dep_val, "-fit_method", fit_method1))
+        m2_rowind <- which(lc_df$name == paste0(fit_method2, "-", obs_dist_complex_val, "-", time_dep_val, "-fit_method", fit_method2))
+        
+      	lc_df[rowind, ] <- rep(NA, ncol(lc_df))
+        lc_df$name[rowind] <- paste0(fit_method1, "-", fit_method2, "-", obs_dist_complex_val, "-", time_dep_val)
+      	lc_df$obs_dist_complex[rowind] <- obs_dist_complex_val
+      	lc_df$time_dep[rowind] <- time_dep_val
+      	lc_df[rowind, coef_cols] <- lc_df[m1_rowind, coef_cols] - lc_df[m2_rowind, coef_cols]
+      }
+    }
+  }
+}
+
+lc_df$name <- factor(lc_df$name, levels = lc_df$name)
+
+K_mat <- as.matrix(lc_df[, coef_cols])
+
+# get point estimates
+lc_df$pt_est <- as.vector(K_mat %*% matrix(fixef(results_fit)))
+
+# get familywise CIs
+lc_df$fam_CI_lb <- NA
+lc_df$fam_CI_ub <- NA
+fam_CI_obj <- glht(results_fit, linfct = K_mat[confint_rows, ])
+temp <- confint(fam_CI_obj)$confint
+lc_df$fam_CI_lb[confint_rows] <- temp[, 2]
+lc_df$fam_CI_ub[confint_rows] <- temp[, 3]
+
+# get individual CIs
+lc_df$ind_CI_lb <- NA
+lc_df$ind_CI_ub <- NA
+for(rowind in confint_rows) {
+	ind_CI_obj <- glht(results_fit, linfct = K_mat[rowind, , drop = FALSE])
+	temp <- confint(ind_CI_obj)$confint
+	lc_df$ind_CI_lb[rowind] <- temp[, 2]
+	lc_df$ind_CI_ub[rowind] <- temp[, 3]
+}
+
+
+summary_figure_df <-
+  lc_df[21:60, c("name", "obs_dist_complex", "time_dep", "pt_est", "fam_CI_lb", "fam_CI_ub", "ind_CI_lb", "ind_CI_ub")]
+summary_figure_df$method_contrast <- 
+  sapply(strsplit(as.character(summary_figure_df$name), "-", fixed = TRUE), function(comp) { paste(comp[1], "-", comp[2]) })
+
+ggplot(data = summary_figure_df) +
+  geom_point(aes(x = method_contrast, y = pt_est)) +
+  geom_errorbar(aes(x = method_contrast, ymin = fam_CI_lb, ymax = fam_CI_ub)) +
+  facet_grid(time_dep ~ obs_dist_complex) +
+  xlab("Classification Model Pair") +
+  ylab("Difference in Proportion Correct") +
+  theme_bw() +
+  theme(axis.text.x=element_text(angle=90,hjust=1, vjust = 0.5))
+@
+\caption{Estimates of pairwise differences in the mean proportion of time points classified correctly for each pair of models, separately for each combination of complexity level of the feature emission distributions and presence or absence of temporal dependence in the data generating process.  The confidence intervals are from a linear mixed effects model and have a familywise confidence level of 95\%.}
+\label{fig:simStudyResultsCIDifferences}
+\end{figure}
+
+\begin{figure}
+<<DataCharacteristsicsPlotReadData, cache = TRUE, fig.height = 5>>=
 PACwithDDM_location <- find.package("PACwithDDM")
 
 L_subject_numbers <- c("22")
@@ -173,6 +393,9 @@ plot_data$reduced_cat <- factor(plot_data$reduced_cat, levels = c("Sedentary/Sta
 opd <- plot_data
 plot_data <- plot_data[seq_len(80 * 60 * 60), ]
 @
+\caption{Box plots showing the proportion of time points classified correctly in the simulation study.  A separate box plot is displayed for each combination of the complexity level of the feature emission distributions and the classification method.  Each point corresponds to a combination of distribution complexity, classification method, and simulation index.}
+\label{fig:simStudyResultsBoxplotsp}
+\end{figure}
 
 
 \begin{figure}
@@ -213,6 +436,110 @@ grid.text(expression(paste("Simulation Study Results: Macro ", F[1], " Score by 
 
 \section{Applications}
 \label{sec:Applications}
+
+Tables \ref{tbl:ManniniFeatures} and \ref{tbl:SasakiFeatures} list the accelerometer features used for the data from \citet{mannini2013activityrecognition} and \citet{sasaki2016ActivityClassificationOlder} respectively.  The prevalence of different levels of activity type and intensity for each dataset are in \ref{tbl:Prevalence}.
+
+\begin{table}[!hp]
+\centering
+\begin{tabular}{>{\raggedleft}p{.15\textwidth} >{\raggedright\arraybackslash}p{.8\textwidth}}
+\toprule
+Domain & Feature \\
+\midrule
+Time & Mean \\
+\cmidrule{2-2}
+ & Standard deviation\\
+\cmidrule{2-2}
+ & Minimum and maximum\\
+\midrule
+Frequency & Frequency and power of the first dominant frequency between 0.3 Hz and 15 Hz \\
+\cmidrule{2-2}
+ & Frequency and power of the second dominant frequency between 0.3 Hz and 15 Hz \\
+\cmidrule{2-2}
+ & Total power between 0.3 Hz and 15 Hz \\
+\cmidrule{2-2}
+ & Ratio of the power of the first dominant frequency between 0.3 Hz and 15 Hz and the total power between 0.3 Hz and 15 Hz \\
+\cmidrule{2-2}
+ & Frequency and power of the first dominant frequency between 0.3 Hz and 3 Hz \\
+\cmidrule{2-2}
+ & Ratio of the frequency of the first dominant frequency between 0.3 Hz and 15 Hz in the current window and in the previous window \\
+\bottomrule
+\end{tabular}
+\caption{Features extracted from the accelerometer signal in preprocessing the data from \protect\cite{mannini2013activityrecognition}.  All features are computed using the acceleration vector magnitude.}
+\label{tbl:ManniniFeatures}
+\end{table}
+
+\begin{table}[!hp]
+\centering
+\begin{tabular}{>{\raggedleft}p{.1\textwidth} >{\raggedright\arraybackslash}p{.6\textwidth} >{\raggedleft}p{.01\textwidth} >{\raggedleft}p{.01\textwidth} >{\raggedleft}p{.01\textwidth} >{\raggedleft}p{.025\textwidth} >{\raggedleft}p{.01\textwidth} >{\raggedleft}p{.01\textwidth}}
+%\begin{tabular}{>{\raggedleft}p{.11\textwidth} >{\raggedright\arraybackslash}p{.59\textwidth} >{\centering}p{.015\textwidth} >{\centering}p{.015\textwidth} >{\centering}p{.015\textwidth} >{\centering}p{.015\textwidth} >{\centering}p{.015\textwidth} >{\centering}p{.015\textwidth}}
+%\begin{tabular}{>{\raggedleft}p{.11\textwidth} >{\raggedright\arraybackslash}p{.59\textwidth} c c c c c c}
+\toprule
+%Domain & Feature & \multicolumn{1}{b{.015\textwidth}}{\parbox[b]{.015\textwidth}{\begin{center}X\end{center}}} & \multicolumn{1}{b{.015\textwidth}}{\parbox[b]{.015\textwidth}{\begin{center}Y\end{center}}} & \multicolumn{1}{b{.015\textwidth}}{\parbox[b]{.015\textwidth}{\begin{center}Z\end{center}}} & \multicolumn{1}{b{.015\textwidth}}{\parbox[b]{.015\textwidth}{\begin{center}VM\end{center}}} & \multicolumn{1}{b{.015\textwidth}}{\parbox[b]{.015\textwidth}{\begin{center}$\theta$\end{center}}} & \multicolumn{1}{b{.015\textwidth}}{\parbox[b]{.015\textwidth}{\begin{center}$\rho$\end{center}}} \tabularnewline
+Domain & Feature & X & Y & Z & VM & $\theta$ & $\phi$ \tabularnewline
+\midrule
+Time & Mean & Y & Y & Y & Y & Y & Y \tabularnewline
+\cmidrule{2-8}
+ & The 10th, 25th, 50th, 75th, and 90th percentiles & Y & Y & Y & Y & Y & Y \tabularnewline
+\cmidrule{2-8}
+ & Lag 1 autocorrelation & Y & Y & Y & Y & N & N \tabularnewline
+\cmidrule{2-8}
+ & Entropy: We place the observed VM values into 10 bins of equal size and calculate the proportion falling into each bin, $p_{1}, \ldots, p_{10}$.  The estimated entropy is then $-\frac{1}{10}\sum_{i = 1}^{10} p_{i} log(p_{i})$ & N & N & N & Y & N & N \tabularnewline
+\midrule
+Frequency & Frequency and power of the first dominant frequency & Y & Y & Y & Y & N & N \tabularnewline % : The frequency and estimated power for the frequency with the highest estimated power
+\cmidrule{2-8}
+ & Frequency and power of the second dominant frequency & Y & Y & Y & Y & N & N \tabularnewline %: Same as above, for the frequency with the second-highest estimated power
+\cmidrule{2-8}
+ & Total power: The sum of the estimated power for all frequencies. & Y & Y & Y & Y & N & N \tabularnewline % Note that this is equal to $\frac{T-1}{2}$ times the sample variance of the observations if $T$ is odd, with a slight adjustment if $T$ is even.
+\cmidrule{2-8}
+ & Frequency and power of the first dominant frequency in the band from 0.3 to 3 Hz & Y & Y & Y & Y & N & N \tabularnewline
+\cmidrule{2-8}
+ & Ratio of power of first dominant frequency in the band from 0.3 to 3Hz to power of first dominant frequency overall & Y & Y & Y & Y & N & N \tabularnewline
+\cmidrule{2-8}
+ & Entropy of the spectral density: After normalizing the estimated powers so that they sum to 1, we apply the entropy calculation above. & Y & Y & Y & Y & N & N \tabularnewline  %  This is a measure of how uniformly ``distributed'' the variance is among the frequencies considered.
+\bottomrule
+\end{tabular}
+\caption{Features extracted from the accelerometer signal in preprocessing the data from \protect\cite{sasaki2016ActivityClassificationOlder}.  The right-hand 6 columns indicate whether the listed feature was computed for each of the three axes on which acceleration was measured, vector magnitude, polar angle, and azimuthal angle.} %anteroposterior axis, mediolateral axis, vertical axis, 
+\label{tbl:SasakiFeatures}
+\end{table}
+
+\begin{table}
+\centering
+\begin{tabular} {c c c c c c c}
+\toprule
+Response & \multicolumn{1}{c}{\parbox[b]{2.2cm}{\centering Data Set}} & \multicolumn{5}{c}{\parbox[b]{8cm}{\centering Activity Class and Prevalence}} \\
+\midrule
+Intensity &  & Sedentary & Light & Moderate & Vigorous & Transition \\
+\cmidrule(r){3-7}
+ & \multicolumn{1}{c}{\parbox[b]{2.05cm}{\baselineskip=12pt
+ \centering Mannini\\Lab, Ankle}} & 35.2\% & 4.8\% & 55.5\% & 4.5\% & - \\
+ & \multicolumn{1}{c}{\parbox[b]{2.05cm}{\baselineskip=12pt
+ \centering Mannini\\Lab, Wrist}} & 35.5\% & 4.8\% & 55.3\% & 4.4\% & - \\
+ & \multicolumn{1}{c}{\parbox[b]{2.05cm}{\baselineskip=12pt
+ \centering Sasaki\\Lab}} & 18.4\% & 44.2\% & 35.7\% & 0\% & 1.7 \% \\
+ & \multicolumn{1}{c}{\parbox[b]{2.05cm}{\baselineskip=12pt
+ \centering Sasaki\\Free Living}} & 24.7\% & 41.5\% & 23.6\% & 0.8\% & 9.4\% \\
+\midrule
+Type &  & Sedentary & Ambulation & Cycling & Other & \\
+\cmidrule(r){3-7}
+ & \multicolumn{1}{c}{\parbox[b]{2.15cm}{\baselineskip=12pt
+ \centering Mannini\\Lab, Ankle}} & 39.9\% & 33.2\% & 13.8\% & 13.1\% &  \\
+ & \multicolumn{1}{c}{\parbox[b]{2.15cm}{\baselineskip=12pt
+ \centering Mannini\\Lab, Wrist}} & 40.3\% & 32.9\% & 14.0\% & 12.9\% &   \\
+\midrule
+Type &  & \multicolumn{1}{c}{\parbox[b]{2cm}{\baselineskip=12pt
+ \centering Sedentary/\\Standing}} & \multicolumn{1}{c}{\parbox[b]{2.2cm}{\baselineskip=12pt
+ \centering Moving\\Intermittently}} & Locomotion & Transition & \\
+\cmidrule(r){3-7}
+ & \multicolumn{1}{c}{\parbox[b]{2.15cm}{\baselineskip=12pt
+ \centering Sasaki\\Lab}} & 17.2\% & 53.7\% & 27.4\% & 1.7\% & \\
+ & \multicolumn{1}{c}{\parbox[b]{2.15cm}{\baselineskip=12pt
+ \centering Sasaki\\Free Living}} & 45.5\% & 26.4\% & 18.9\% & 9.3\% & \\
+\bottomrule
+\end{tabular}
+\caption{Prevalence of activity intensity and type labels in the data from \protect\citet{mannini2013activityrecognition} and \protect\citet{sasaki2016ActivityClassificationOlder}.  In the data from \protect\citet{mannini2013activityrecognition}, prevalence varies slightly across accelerometer locations since different time windows were dropped in the cleaning process they used to handle missing data due to wireless transmission problems with the accelerometers.}
+\label{tbl:Prevalence}
+\end{table}
+
 
 Here we present the classification results in the applications, as summarized by the macro $F_1$ score (Supplemental Figure~\ref{fig:applicationResultsPlot}).  With the $F_1$ score, the differences in performance between the dynamic models and the corresponding static models are statistically significant at the $\alpha = 0.05$ level.  The differences in mean $F_1$ score between the generative and discriminative models are not statistically significant or consistent in direction across classification of activity type or intensity.  This is different from the measure of proportion correct discussed in the main manuscript, where discriminative models generally outperformed their static counterparts by a statistically significant margin.  These results are consistent with Supplemental Table~\ref{tbl:detailedResults}, where we present the mean $F_1$ score separately for each combination of response, location, and data set.  Across all of these combinations, the dynamic models tended to achieve higher $F_1$ scores than the static models, and the \textbf{CRF} had the most consistent performance as measured by the $F_1$ score.
 
@@ -490,7 +817,7 @@ for(i in seq_len(nrow(results_table))) {
 \end{table*}
 
 
-The confidence intervals displayed in Figure 3 of the main manuscript and Supplemental Figure~\ref{fig:applicationResultsPlot}, as well as the hypothesis test results discussed throughout the text, were obtained using linear mixed effects models with the following specification:
+The confidence intervals displayed in Figure 4 of the main manuscript and Supplemental Figure~\ref{fig:applicationResultsPlot}, as well as the hypothesis test results discussed throughout the text, were obtained using linear mixed effects models with the following specification:
 \begin{eqnarray*}
 y_{r,l,d,c,s} & = & \mu_{r,l,d,c} + \alpha_{d|s} + \varepsilon_{r,l,d,c,s} \label{eqn:lmeOverall} \\
 \alpha_{d|s} & \sim & N(0, \sigma^2_s) \label{eqn:lmeRE} \\
